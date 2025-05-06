@@ -1,0 +1,175 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return request.auth != null && 
+             request.auth.token.email == 'cham212003@gmail.com';
+    }
+
+    function isValidText(text) {
+      return text is string && text.size() <= 5000;
+    }
+
+    function isValidTimestamp(timestamp) {
+      return timestamp is timestamp;
+    }
+
+    function isValidUrl(url) {
+      return url.matches('^https?://[^\\s/$.?#].[^\\s]*$');
+    }
+
+    function isValidYouTubeUrl(url) {
+      return url.matches('^https?://(?:www\\.)?(?:youtube\\.com|youtu\\.be)/.+$');
+    }
+
+    function isValidNumber(value, min, max) {
+      return value is number && value >= min && value <= max;
+    }
+
+    // Rate limiting helper
+    function isNotRateLimited(path) {
+      let recentAttempts = get(/databases/$(database)/documents/system/rate_limits/$(request.auth.uid)/$(path)).data.attempts || 0;
+      return recentAttempts < 100;
+    }
+
+    // Quota usage collection rules
+    match /quotaUsage/{document=**} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() &&
+        request.resource.data.keys().hasAll([
+          'timestamp',
+          'quotaUsed',
+          'quotaRemaining',
+          'totalQuota',
+          'updatedBy'
+        ]) &&
+        request.resource.data.updatedBy == request.auth.token.email;
+    }
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) &&
+        (!request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['role', 'createdAt']));
+      allow delete: if isAdmin();
+
+      // User's YouTube channels
+      match /channels/{channelId} {
+        allow read: if isAuthenticated();
+        allow write: if isOwner(userId) && isNotRateLimited('channel_operations') &&
+          isValidYouTubeUrl(request.resource.data.url);
+      }
+
+      // User's view history
+      match /viewHistory/{videoId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && isNotRateLimited('view_operations');
+      }
+
+      // User's settings
+      match /settings/{settingId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+
+      // User's notifications
+      match /notifications/{notificationId} {
+        allow read: if isOwner(userId);
+        allow create: if isAdmin();
+        allow update: if isOwner(userId) && 
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'updatedAt']);
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // Videos collection
+    match /videos/{videoId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && 
+        isValidYouTubeUrl(request.resource.data.url) &&
+        request.resource.data.userId == request.auth.uid &&
+        isNotRateLimited('video_creation');
+      allow update: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || isAdmin()) &&
+        isNotRateLimited('video_update');
+      allow delete: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Video statistics
+      match /statistics/{statId} {
+        allow read: if true;
+        allow write: if isAuthenticated() && 
+          (get(/databases/$(database)/documents/videos/$(videoId)).data.userId == request.auth.uid || isAdmin());
+      }
+
+      // Video comments
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isAuthenticated() && 
+          isValidText(request.resource.data.text) &&
+          request.resource.data.userId == request.auth.uid &&
+          isNotRateLimited('comment_creation');
+        allow update: if isAuthenticated() && 
+          resource.data.userId == request.auth.uid &&
+          isValidText(request.resource.data.text);
+        allow delete: if isAuthenticated() && 
+          (resource.data.userId == request.auth.uid || isAdmin());
+      }
+    }
+
+    // View tracking
+    match /views/{viewId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid &&
+        isNotRateLimited('view_creation');
+      allow update, delete: if false;
+    }
+
+    // Analytics and metrics
+    match /analytics/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+
+      match /daily/{date} {
+        allow read: if isAuthenticated();
+        allow write: if isAdmin();
+      }
+    }
+
+    // System settings and configurations
+    match /system/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+
+      // Rate limiting
+      match /rate_limits/{userId}/{operation} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isAdmin();
+      }
+    }
+
+    // Audit logs
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;  // Write only through backend
+    }
+  }
+} 

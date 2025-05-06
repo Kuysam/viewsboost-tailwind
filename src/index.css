@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optional: extra reset */
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --background-primary: #ffffff;
+  --text-primary: #000000;
+}
+
+.dark {
+  --background-primary: #121212;
+  --text-primary: #ffffff;
+}
+
+body {
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease;
+}
