@@ -1,4 +1,3 @@
-// src/components/BaseLayout.tsx
 import React, { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -31,6 +30,9 @@ export default function BaseLayout({ children }: BaseLayoutProps) {
   const location = useLocation();
   const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
 
+  // hide sidebar/nav on the very first landing route
+  const hideNav = location.pathname === '/';
+
   useEffect(() => {
     const root = document.documentElement;
     if (dark) {
@@ -44,14 +46,15 @@ export default function BaseLayout({ children }: BaseLayoutProps) {
 
   return (
     <div className="relative">
-      {/* Full-screen background + dark overlay */}
+      {/* full-screen bg image */}
       <div className="fixed inset-0 bg-[url('/images/satin-phone-bg.png')] bg-fixed bg-cover bg-center z-0" />
-      <div className="fixed inset-0 bg-black/60 z-10" />
+      {/* dark overlay if in dark mode */}
+      <div className={`fixed inset-0 ${dark ? 'bg-black/60' : 'bg-transparent'} z-10`} />
 
       <div className="relative z-20 flex min-h-screen">
-        {/* ====== LEFT-SIDED SIDEBAR ====== */}
-        <aside
-          className="
+        {/* SIDEBAR */}
+        {!hideNav && (
+          <aside className="
             hidden md:flex flex-col
             items-start justify-between
             fixed top-0 bottom-0 left-0
@@ -60,45 +63,34 @@ export default function BaseLayout({ children }: BaseLayoutProps) {
             p-6 space-y-6
             rounded-r-3xl
             shadow-2xl
-          "
-        >
-          {/* Logo at top */}
-          <Link to="/home" className="self-center mb-8">
-            <img
-              src="/images/viewsboost-logo.png"
-              alt="ViewsBoost"
-              className="w-16"
-            />
-          </Link>
+          ">
+            <Link to="/home" className="self-center mb-8">
+              <img src="/images/viewsboost-logo.png" alt="ViewsBoost" className="w-16" />
+            </Link>
 
-          {/* Menu */}
-          <nav className="flex-1 flex flex-col gap-4">
-            {menuItems.map(({ label, to, icon }) => {
-              const isActive = location.pathname === to;
-              const isLive   = to === '/live';
-
-              return (
-                <Link
-                  key={to}
-                  to={to}
-                  className={`
-                    flex items-center gap-4
-                    px-4 py-3
-                    rounded-2xl
-                    transition
-                    ${isActive ? 'bg-white/20' : 'hover:bg-white/10'}
-                  `}
-                >
-                  <div
+            <nav className="flex-1 flex flex-col gap-4">
+              {menuItems.map(({ label, to, icon }) => {
+                const isActive = location.pathname === to;
+                const isLive = to === '/live';
+                return (
+                  <Link
+                    key={to}
+                    to={to}
                     className={`
-                      ${isLive ? '' : 'text-white'}
-                      ${isActive && !isLive ? 'text-yellow-400' : ''}
+                      flex items-center gap-4
+                      px-4 py-3
+                      rounded-2xl
+                      transition
+                      ${isActive ? 'bg-white/20' : 'hover:bg-white/10'}
                     `}
                   >
-                    {icon}
-                  </div>
-                  <span
-                    className={`
+                    <div className={`
+                      ${isLive ? '' : 'text-white'}
+                      ${isActive && !isLive ? 'text-yellow-400' : ''}
+                    `}>
+                      {icon}
+                    </div>
+                    <span className={`
                       text-lg font-semibold
                       ${isLive
                         ? isActive
@@ -106,35 +98,38 @@ export default function BaseLayout({ children }: BaseLayoutProps) {
                           : 'text-white'
                         : 'text-white'
                       }
-                    `}
-                  >
-                    {label}
-                  </span>
-                </Link>
-              );
-            })}
+                    `}>
+                      {label}
+                    </span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <button
+              onClick={() => setDark(d => !d)}
+              className="self-center mt-auto text-white hover:text-yellow-400 transition"
+            >
+              Toggle {dark ? 'Light' : 'Dark'}
+            </button>
+          </aside>
+        )}
+
+        {/* MAIN CONTENT */}
+        <main className={`flex-1 ${hideNav ? 'mx-auto w-full max-w-4xl' : 'ml-0 md:ml-64'}`}>
+          {children}
+        </main>
+
+        {/* MOBILE TABS */}
+        {!hideNav && (
+          <nav className="fixed bottom-0 inset-x-0 bg-black/80 backdrop-blur py-2 flex justify-around items-center md:hidden z-20">
+            {menuItems.map(({ to, icon }) => (
+              <Link key={to} to={to} className="text-white">
+                {icon}
+              </Link>
+            ))}
           </nav>
-
-          {/* Theme toggle */}
-          <button
-            onClick={() => setDark(d => !d)}
-            className="self-center mt-auto text-white hover:text-yellow-400 transition"
-          >
-            Toggle {dark ? 'Light' : 'Dark'}
-          </button>
-        </aside>
-
-        {/* ====== MAIN CONTENT ====== */}
-        <main className="flex-1">{children}</main>
-
-        {/* ====== MOBILE BOTTOM TABS (unchanged) ====== */}
-        <nav className="fixed bottom-0 inset-x-0 bg-black/80 backdrop-blur py-2 flex justify-around items-center md:hidden z-20">
-          {menuItems.map(({ to, icon }) => (
-            <Link key={to} to={to} className="text-white">
-              {icon}
-            </Link>
-          ))}
-        </nav>
+        )}
       </div>
     </div>
   );
