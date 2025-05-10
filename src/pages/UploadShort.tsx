@@ -1,3 +1,6 @@
+import VideoGrid from '../components/VideoGrid';
+import * as Icons from 'lucide-react';
+
 export default function UploadShort() {
     return (
       <div className="min-h-screen text-white bg-black p-6">

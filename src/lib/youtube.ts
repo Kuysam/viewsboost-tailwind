@@ -1,6 +1,6 @@
-import axios from 'axios';
+// src/lib/services/youtube.ts
 import { handleAPIError, APIError, ErrorMessages } from './errorHandling';
-import { rateLimiters, withRateLimit, quotaTracker } from './rateLimiter';
+import { rateLimiters, withRateLimit } from './rateLimiter';
 import { withRetry } from './retryLogic';
 import { logger } from './logger';
 
@@ -10,11 +10,13 @@ const API_KEYS = [
   import.meta.env.VITE_YT_API_KEY_2,
   import.meta.env.VITE_YT_API_KEY_3,
   import.meta.env.VITE_YT_API_KEY_4,
-].filter(Boolean);
+].filter(Boolean) as string[];
 
 const BASE_URL = import.meta.env.VITE_YOUTUBE_API_BASE_URL || 'https://www.googleapis.com/youtube/v3';
 
-let currentKeyIndex = 0;
+// Start at a random key each run to spread usage
+let currentKeyIndex = Math.floor(Math.random() * API_KEYS.length);
+
 function rotateKey() {
   currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
 }
@@ -24,7 +26,7 @@ function getApiKey() {
   return key;
 }
 
-// In-memory cache
+// In‑memory cache
 const cache = new Map<string, any>();
 function getCached(key: string) {
   return cache.get(key);
@@ -59,7 +61,7 @@ export async function getChannelDetails(channelId: string) {
         };
         setCached(cacheKey, details);
         return details;
-      } catch (err) {
+      } catch (err: unknown) {
         throw handleAPIError(err);
       }
     })
@@ -84,7 +86,7 @@ export async function getUploadsPlaylistId(channelId: string): Promise<string> {
         if (!playlistId) throw new APIError(ErrorMessages.NOT_FOUND, 404);
         setCached(cacheKey, playlistId);
         return playlistId;
-      } catch (err) {
+      } catch (err: unknown) {
         throw handleAPIError(err);
       }
     })
@@ -121,7 +123,7 @@ export async function getPlaylistVideos(
         }));
         setCached(cacheKey, videos);
         return videos;
-      } catch (err) {
+      } catch (err: unknown) {
         throw handleAPIError(err);
       }
     })
@@ -177,4 +179,47 @@ export async function getLiveVideoIdFromChannel(channelId: string): Promise<stri
   const videoId = video?.id?.videoId || null;
   setCached(cacheKey, videoId);
   return videoId;
+}
+
+// --- Video Durations with Chunking ---
+/**
+ * Given a list of video IDs, fetch durations in 50‑ID chunks.
+ * Logs errors and continues; returns map of id → seconds.
+ */
+export async function getVideoDurations(
+  videoIds: string[]
+): Promise<Record<string, number>> {
+  const durations: Record<string, number> = {};
+  if (videoIds.length === 0) return durations;
+
+  // ISO8601 parser: PT#H#M#S
+  const toSeconds = (iso: string) => {
+    const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)!;
+    const hours   = parseInt(match[1] || '0', 10);
+    const minutes = parseInt(match[2] || '0', 10);
+    const seconds = parseInt(match[3] || '0', 10);
+    return hours * 3600 + minutes * 60 + seconds;
+  };
+
+  const chunkSize = 50;
+  for (let i = 0; i < videoIds.length; i += chunkSize) {
+    const batch = videoIds.slice(i, i + chunkSize);
+    const idsParam = batch.join(',');
+    try {
+      const url = `${BASE_URL}/videos?part=contentDetails&id=${idsParam}&key=${getApiKey()}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        logger.error(`Failed to fetch durations for: ${idsParam}`, `Status ${res.status}`);
+        continue;
+      }
+      const data = await res.json();
+      for (const item of data.items || []) {
+        durations[item.id] = toSeconds(item.contentDetails.duration);
+      }
+    } catch (err: unknown) {
+      logger.error('Error fetching duration chunk:', err);
+    }
+  }
+
+  return durations;
 }

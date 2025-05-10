@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface QuotaTableProps {
   quotaUsed: number;
@@ -7,6 +7,8 @@ interface QuotaTableProps {
 }
 
 export default function QuotaTable({ quotaUsed, quotaRemaining, loginCount }: QuotaTableProps) {
+  const [search, setSearch] = useState('');
+
   return (
     <div className="overflow-auto bg-gray-900/70 rounded-lg shadow-xl">
       <table className="min-w-full text-center text-white">

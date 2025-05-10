@@ -1,6 +1,6 @@
 // src/App.tsx
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import BaseLayout from './components/BaseLayout';
 import LandingPage from './components/LandingPage';
 import Auth from './components/Auth';
@@ -16,7 +16,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import { ThemeProvider } from './contexts/ThemeContext';
 
 // ViewsBoost Pages
-import Home from './pages/Home';
+import EnhancedHome from './pages/EnhancedHome';
 import Feed from './pages/Feed';
 import Shorts from './pages/Shorts';
 import LivePage from './pages/LivePage';
@@ -49,31 +49,33 @@ export default function App() {
 
   return (
     <ThemeProvider>
+      {/* Public routes (no sidebar) */}
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/disclaimer" element={<Disclaimer />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
+        <Route path="/live/watch/:id" element={<WatchLivePage />} />
+      </Routes>
+
+      {/* All other routes get the BaseLayout with sidebar/nav */}
       <BaseLayout>
         {showAdminAuth && !isAdminRoute && <AdminAuth />}
+
         <Routes>
-          {/* Public */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/disclaimer" element={<Disclaimer />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/terms-of-service" element={<TermsOfService />} />
-          <Route path="/live/watch/:id" element={<WatchLivePage />} />
-
-          {/* Redirect old creator/viewer paths to Home */}
-          <Route path="/creator/*" element={<Navigate to="/home" replace />} />
-          <Route path="/viewer/*" element={<Navigate to="/home" replace />} />
-
-          {/* Unified Protected Routes */}
+          {/* Protected Routes */}
           <Route
             path="/home"
             element={
               <ProtectedRoute roleCollection="all">
-                <Home />
+                <EnhancedHome />
               </ProtectedRoute>
             }
           />
+
+          {/* Feed */}
           <Route
             path="/feed"
             element={
@@ -82,6 +84,8 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Shorts */}
           <Route
             path="/shorts"
             element={
@@ -90,6 +94,8 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Live */}
           <Route
             path="/live"
             element={
@@ -98,6 +104,8 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* News */}
           <Route
             path="/news"
             element={
@@ -106,6 +114,8 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Studio */}
           <Route
             path="/studio"
             element={
@@ -114,6 +124,8 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Profile */}
           <Route
             path="/profile"
             element={
@@ -130,6 +142,8 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* History */}
           <Route
             path="/history"
             element={
@@ -138,6 +152,8 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Video Watch */}
           <Route
             path="/video/:id"
             element={
@@ -147,7 +163,7 @@ export default function App() {
             }
           />
 
-          {/* Protected Admin route */}
+          {/* Admin Panel */}
           <Route
             path="/admin-panel"
             element={
@@ -159,8 +175,8 @@ export default function App() {
             }
           />
 
-          {/* 404 */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Catch-all → 404 Not Found */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BaseLayout>
     </ThemeProvider>

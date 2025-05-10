@@ -1,10 +1,31 @@
-import React, { useEffect, useState } from 'react';
-import { ReactNode } from 'react';
+// src/components/BaseLayout.tsx
+import React, { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import {
+  Home,
+  Film,
+  Video,
+  Newspaper,
+  Palette,
+  User,
+  List,
+  Settings
+} from 'lucide-react';
 
 interface BaseLayoutProps {
   children: ReactNode;
 }
+
+const menuItems = [
+  { label: 'Home',    to: '/home',    icon: <Home size={24} /> },
+  { label: 'Shorts',  to: '/shorts',  icon: <Film size={24} /> },
+  { label: 'Live',    to: '/live',    icon: <span className="block h-3 w-3 bg-red-600 rounded-full" /> },
+  { label: 'News',    to: '/news',    icon: <Newspaper size={24} /> },
+  { label: 'Studio',  to: '/studio',  icon: <Palette size={24} /> },
+  { label: 'Profile', to: '/profile', icon: <User size={24} /> },
+  { label: 'Feed',    to: '/feed',    icon: <List size={24} /> },
+  { label: 'Settings',to: '/settings',icon: <Settings size={24} /> },
+];
 
 export default function BaseLayout({ children }: BaseLayoutProps) {
   const location = useLocation();
@@ -19,79 +40,101 @@ export default function BaseLayout({ children }: BaseLayoutProps) {
       root.classList.remove('dark');
       localStorage.setItem('theme', 'light');
     }
-
-    // 🔐 Secret Admin Shortcut: Ctrl + Shift + A
-    const handleKey = async (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
-        const { getAuth } = await import('firebase/auth');
-        const user = getAuth().currentUser;
-        if (user?.email === 'cham212003@gmail.com') {
-          window.location.href = '/admin-panel-237abc'; // or your protected route
-        } else {
-          alert('Unauthorized: This shortcut is for admin only.');
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
   }, [dark]);
 
-  // Determine which nav items to show
-  let navItems: { label: string; to: string }[] = [];
-  if (location.pathname === '/') {
-    navItems = [
-      { label: 'Sign In', to: '/auth' },
-      { label: 'Sign Up', to: '/signup' },
-    ];
-  } else if (
-    location.pathname.startsWith('/creator') ||
-    location.pathname.startsWith('/viewer') ||
-    location.pathname.startsWith('/video')
-  ) {
-    navItems = [];
-  } else {
-    navItems = [
-      { label: 'Home', to: '/' },
-      { label: 'Disclaimer', to: '/disclaimer' },
-    ];
-  }
-
   return (
-    <div className="relative w-full min-h-screen bg-gradient-to-br from-[#181818] via-[#232526] to-[#0a0a0a] overflow-hidden text-white">
-      {/* Logo */}
-      {!(location.pathname.startsWith('/viewer') || location.pathname.startsWith('/creator') || location.pathname.startsWith('/video')) && (
-        <div className="absolute top-4 left-4 flex items-center z-20 opacity-80">
-          <img src="/images/viewsboost-logo.png" alt="ViewsBoost" className="w-24 drop-shadow-lg" />
-          <span className="ml-2 text-2xl font-bold text-yellow-400">ViewsBoost</span>
-        </div>
-      )}
+    <div className="relative">
+      {/* Full-screen background + dark overlay */}
+      <div className="fixed inset-0 bg-[url('/images/satin-phone-bg.png')] bg-fixed bg-cover bg-center z-0" />
+      <div className="fixed inset-0 bg-black/60 z-10" />
 
-      {/* Conditional nav links */}
-      {navItems.length > 0 && (
-        <div className="absolute top-4 right-4 flex gap-4 z-50 items-center">
+      <div className="relative z-20 flex min-h-screen">
+        {/* ====== LEFT-SIDED SIDEBAR ====== */}
+        <aside
+          className="
+            hidden md:flex flex-col
+            items-start justify-between
+            fixed top-0 bottom-0 left-0
+            w-64  
+            bg-black/75 backdrop-blur-lg
+            p-6 space-y-6
+            rounded-r-3xl
+            shadow-2xl
+          "
+        >
+          {/* Logo at top */}
+          <Link to="/home" className="self-center mb-8">
+            <img
+              src="/images/viewsboost-logo.png"
+              alt="ViewsBoost"
+              className="w-16"
+            />
+          </Link>
+
+          {/* Menu */}
+          <nav className="flex-1 flex flex-col gap-4">
+            {menuItems.map(({ label, to, icon }) => {
+              const isActive = location.pathname === to;
+              const isLive   = to === '/live';
+
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  className={`
+                    flex items-center gap-4
+                    px-4 py-3
+                    rounded-2xl
+                    transition
+                    ${isActive ? 'bg-white/20' : 'hover:bg-white/10'}
+                  `}
+                >
+                  <div
+                    className={`
+                      ${isLive ? '' : 'text-white'}
+                      ${isActive && !isLive ? 'text-yellow-400' : ''}
+                    `}
+                  >
+                    {icon}
+                  </div>
+                  <span
+                    className={`
+                      text-lg font-semibold
+                      ${isLive
+                        ? isActive
+                          ? 'text-yellow-400'
+                          : 'text-white'
+                        : 'text-white'
+                      }
+                    `}
+                  >
+                    {label}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Theme toggle */}
           <button
-            onClick={() => setDark((d) => !d)}
-            className="bg-gray-900 text-yellow-400 font-bold py-2 px-4 rounded-lg shadow hover:scale-105 transition border border-yellow-400"
-            title="Toggle dark mode"
+            onClick={() => setDark(d => !d)}
+            className="self-center mt-auto text-white hover:text-yellow-400 transition"
           >
-            {dark ? 'Light Mode' : 'Dark Mode'}
+            Toggle {dark ? 'Light' : 'Dark'}
           </button>
-          {navItems.map(({ label, to }) => (
-            <Link
-              key={to}
-              to={to}
-              className="bg-gradient-to-r from-yellow-400 to-orange-500 font-semibold font-bold py-2 px-4 rounded-lg shadow-md hover:scale-105 transition text-gray-900"
-            >
-              {label}
+        </aside>
+
+        {/* ====== MAIN CONTENT ====== */}
+        <main className="flex-1">{children}</main>
+
+        {/* ====== MOBILE BOTTOM TABS (unchanged) ====== */}
+        <nav className="fixed bottom-0 inset-x-0 bg-black/80 backdrop-blur py-2 flex justify-around items-center md:hidden z-20">
+          {menuItems.map(({ to, icon }) => (
+            <Link key={to} to={to} className="text-white">
+              {icon}
             </Link>
           ))}
-        </div>
-      )}
-
-      {/* Page content */}
-      <div className="relative z-10 flex flex-col min-h-screen">
-        {children}
+        </nav>
       </div>
     </div>
   );

@@ -1,48 +1,73 @@
 // src/pages/Shorts.tsx
-import React, { useEffect, useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import BaseLayout from '../components/BaseLayout';
+import SearchBar from '../components/SearchBar';
+import VideoGrid from '../components/VideoGrid';
+import { getVideos, Video } from '../lib/services/videoService';
 import { useSwipeable } from 'react-swipeable';
-import { collection, getDocs, doc, updateDoc, increment } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
+import { doc, updateDoc, increment } from 'firebase/firestore';
 
-interface VideoItem {
+interface SwipeVideo {
   id: string;
   title: string;
-  videoUrl: string;
-  creatorName: string;
+  embedUrl: string;
 }
 
 export default function Shorts() {
-  const [videos, setVideos] = useState<VideoItem[]>([]);
+  // ─── Grid State ───────────────────────────────────────────────────────
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loadingGrid, setLoadingGrid] = useState(true);
+  const [search, setSearch] = useState('');
+
+  // ─── Swipe State ──────────────────────────────────────────────────────
+  const [swipeVideos, setSwipeVideos] = useState<SwipeVideo[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [rewardCountdown, setRewardCountdown] = useState(10);
   const [user] = useAuthState(auth);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // ─── Tabs ─────────────────────────────────────────────────────────────
+  const tabs = ['Grid View', 'Swipe View'] as const;
+  const [activeTab, setActiveTab] = useState<typeof tabs[number]>('Grid View');
+
+  // ─── Load & classify shorts ────────────────────────────────────────────
   useEffect(() => {
-    const fetchVideos = async () => {
-      const querySnapshot = await getDocs(collection(db, 'shorts'));
-      const videoList: VideoItem[] = [];
-      querySnapshot.forEach((doc) => {
-        videoList.push({ id: doc.id, ...doc.data() } as VideoItem);
-      });
-      setVideos(videoList);
-    };
-    fetchVideos();
+    getVideos()
+      .then(all => {
+        // define shorts as either <60s OR tagged “#shorts”
+        const shorts = all.filter(
+          v =>
+            v.duration < 60 ||
+            v.title.toLowerCase().includes('#shorts')
+        );
+
+        // grid gets those shorts
+        setVideos(shorts);
+
+        // swipe gets same list with embed URLs
+        setSwipeVideos(
+          shorts.map(v => ({
+            id: v.id,
+            title: v.title,
+            embedUrl: `https://www.youtube.com/embed/${v.id}?autoplay=1&mute=1&controls=0&modestbranding=1&loop=1&playlist=${v.id}`,
+          }))
+        );
+      })
+      .catch(err => console.error('Error loading shorts:', err))
+      .finally(() => setLoadingGrid(false));
   }, []);
 
+  // ─── Reward Timer ──────────────────────────────────────────────────────
   useEffect(() => {
-    if (!videos.length) return;
+    if (activeTab !== 'Swipe View' || swipeVideos.length === 0) return;
 
-    // Reset countdown when video changes
     setRewardCountdown(10);
-
     if (intervalRef.current) clearInterval(intervalRef.current);
 
     intervalRef.current = setInterval(() => {
-      setRewardCountdown((prev) => {
+      setRewardCountdown(prev => {
         if (prev <= 1) {
           clearInterval(intervalRef.current!);
           rewardUser();
@@ -52,68 +77,124 @@ export default function Shorts() {
       });
     }, 1000);
 
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [currentIndex]);
+    return () => intervalRef.current && clearInterval(intervalRef.current);
+  }, [activeTab, currentIndex, swipeVideos]);
 
   const rewardUser = async () => {
     if (!user) return;
     try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
+      await updateDoc(doc(db, 'users', user.uid), {
         shortsCoins: increment(1),
       });
       console.log('Rewarded user +1 coin');
-    } catch (error) {
-      console.error('Reward error:', error);
+    } catch (err) {
+      console.error('Reward error:', err);
     }
   };
 
+  // ─── Swipe Handlers ────────────────────────────────────────────────────
   const swipeHandlers = useSwipeable({
     onSwipedUp: () => {
-      if (currentIndex < videos.length - 1) setCurrentIndex(currentIndex + 1);
+      if (currentIndex < swipeVideos.length - 1) {
+        setCurrentIndex(i => i + 1);
+      }
     },
     onSwipedDown: () => {
-      if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
+      if (currentIndex > 0) {
+        setCurrentIndex(i => i - 1);
+      }
     },
     preventScrollOnSwipe: true,
     trackTouch: true,
     trackMouse: true,
   });
 
-  if (videos.length === 0) {
-    return <div className="h-screen flex items-center justify-center text-white">Loading shorts...</div>;
-  }
+  // ─── Grid filter ───────────────────────────────────────────────────────
+  const filteredGrid = videos.filter(v =>
+    v.title.toLowerCase().includes(search.toLowerCase())
+  );
 
-  const currentVideo = videos[currentIndex];
-
+  // ─── Render ───────────────────────────────────────────────────────────
   return (
-    <div
-      {...swipeHandlers}
-      className="h-screen w-screen bg-black text-white overflow-hidden relative"
-    >
-      <video
-        key={currentVideo.id}
-        src={currentVideo.videoUrl}
-        className="h-full w-full object-cover"
-        autoPlay
-        loop
-        muted
-        playsInline
-      />
-      <div className="absolute bottom-12 left-4 z-10">
-        <h2 className="text-lg font-bold">{currentVideo.title}</h2>
-        <p className="text-sm text-gray-300">@{currentVideo.creatorName}</p>
-        <div className="mt-2 text-yellow-400 font-bold">
-          ⏳ Reward in: {rewardCountdown}s
+    <BaseLayout>
+      <div className="max-w-7xl mx-auto py-8">
+        {/* Tabs */}
+        <div className="flex gap-4 mb-6">
+          {tabs.map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 rounded-lg font-medium ${
+                activeTab === tab
+                  ? 'bg-yellow-400 text-black'
+                  : 'bg-black/30 text-white hover:bg-black/50'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
+
+        {/* Grid View */}
+        {activeTab === 'Grid View' && (
+          <>
+            <SearchBar value={search} onChange={setSearch} />
+            {loadingGrid ? (
+              <div className="text-center text-gray-300">Loading shorts…</div>
+            ) : (
+              <VideoGrid videos={filteredGrid} />
+            )}
+          </>
+        )}
+
+        {/* Swipe View */}
+        {activeTab === 'Swipe View' && (
+          <div
+            {...swipeHandlers}
+            className="h-screen w-screen bg-black text-white overflow-hidden relative"
+          >
+            {swipeVideos.length === 0 ? (
+              <div className="h-full flex items-center justify-center">
+                No shorts available.
+              </div>
+            ) : (
+              <>
+                {/* YouTube Embed */}
+                <iframe
+                  key={swipeVideos[currentIndex].id}
+                  src={swipeVideos[currentIndex].embedUrl}
+                  className="w-full h-full absolute inset-0"
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                />
+
+                {/* Info & Countdown */}
+                <div className="absolute bottom-12 left-4 z-10 space-y-1">
+                  <h2 className="text-lg font-bold">
+                    {swipeVideos[currentIndex].title}
+                  </h2>
+                  <div className="mt-2 text-yellow-400 font-bold">
+                    ⏳ Reward in: {rewardCountdown}s
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="absolute right-4 bottom-12 z-10 flex flex-col items-center gap-4">
+                  <button className="bg-white bg-opacity-10 p-2 rounded-full hover:bg-opacity-30">
+                    ❤️
+                  </button>
+                  <button className="bg-white bg-opacity-10 p-2 rounded-full hover:bg-opacity-30">
+                    💬
+                  </button>
+                  <button className="bg-white bg-opacity-10 p-2 rounded-full hover:bg-opacity-30">
+                    ↗️
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
-      <div className="absolute right-4 bottom-12 z-10 flex flex-col items-center gap-4">
-        <button className="bg-white bg-opacity-10 p-2 rounded-full hover:bg-opacity-30">❤️</button>
-        <button className="bg-white bg-opacity-10 p-2 rounded-full hover:bg-opacity-30">💬</button>
-        <button className="bg-white bg-opacity-10 p-2 rounded-full hover:bg-opacity-30">↗️</button>
-      </div>
-    </div>
+    </BaseLayout>
   );
 }

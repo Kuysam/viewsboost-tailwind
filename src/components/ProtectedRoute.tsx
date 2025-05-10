@@ -5,9 +5,12 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
+// Admin email constant for admin route check
+const ADMIN_EMAIL = 'cham212003@gmail.com';
+
 interface Props {
   children: React.ReactElement;
-  roleCollection: 'creators' | 'viewers' | 'admin';
+  roleCollection: 'all' | 'creators' | 'viewers' | 'admin';
 }
 
 export default function ProtectedRoute({ children, roleCollection }: Props) {
@@ -22,10 +25,15 @@ export default function ProtectedRoute({ children, roleCollection }: Props) {
         return;
       }
 
-      // Special handling for admin
+      // Allow all authenticated users
+      if (roleCollection === 'all') {
+        setAllowed(true);
+        return;
+      }
+
+      // Special handling for admin role
       if (roleCollection === 'admin') {
         if (user.email === ADMIN_EMAIL) {
-          // Check for admin authentication
           const isAuthenticated = sessionStorage.getItem('adminAuthenticated') === 'true';
           if (!isAuthenticated) {
             navigate('/');
@@ -38,6 +46,7 @@ export default function ProtectedRoute({ children, roleCollection }: Props) {
         return;
       }
 
+      // Check Firestore for creator/viewer roles
       try {
         const docRef = doc(db, roleCollection, user.uid);
         const docSnap = await getDoc(docRef);
