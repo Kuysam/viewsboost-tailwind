@@ -27,8 +27,3 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
-
-# Environment variables
-.env.development.local
-.env.test.local
-.env.production.local

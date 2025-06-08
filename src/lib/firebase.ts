@@ -1,14 +1,13 @@
 // src/lib/firebase.ts
 import { initializeApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBJQVHpWywY8BAS3T6ApYwM-ILRfkQTnEA",
-  authDomain: "viewsboostv2.firebaseapp.com",
-  projectId: "viewsboostv2",
-  storageBucket: "viewsboostv2.appspot.com",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
@@ -16,13 +15,6 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Get Firebase services
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-// Enable persistence for better offline support
-setPersistence(auth, browserLocalPersistence);
-
-export { app, auth, db, storage };
-export default app;
+// Get Auth and Firestore instances
+export const auth = getAuth(app);
+export const db = getFirestore(app);

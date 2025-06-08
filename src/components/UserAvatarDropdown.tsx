@@ -1,123 +1,169 @@
+// src/components/UserAvatarDropdown.tsx
+
 import React, { useState, useRef, useEffect } from 'react';
+import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { signOut } from 'firebase/auth';
+import {
+  ChevronDown,
+  User,
+  Settings,
+  Video,
+  BarChart2,
+  Bell,
+  LogOut,
+  History,
+  Search,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const defaultAvatar = '/images/default-avatar.png';
+import { logoutUser } from '../lib/auth';
 
 export default function UserAvatarDropdown() {
+  const [user] = useAuthState(auth);
+  const [profile, setProfile] = useState<{ displayName: string; photoURL: string } | null>(null);
   const [open, setOpen] = useState(false);
-  const [userData, setUserData] = useState<any>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const user = auth.currentUser;
 
-  // Fetch user data
+  // Fetch basic profile data
   useEffect(() => {
-    async function fetchUser() {
-      if (!user) return;
-      let docSnap = await getDoc(doc(db, 'viewers', user.uid));
-      if (!docSnap.exists()) {
-        docSnap = await getDoc(doc(db, 'creators', user.uid));
+    if (!user) return;
+    (async () => {
+      const snap = await getDoc(doc(db, 'viewers', user.uid));
+      if (snap.exists()) {
+        const data = snap.data();
+        setProfile({
+          displayName: data.firstName + ' ' + data.lastName,
+          photoURL: data.photoURL || '/images/avatar-placeholder.png',
+        });
       }
-      if (docSnap.exists()) setUserData(docSnap.data());
-    }
-    fetchUser();
+    })();
   }, [user]);
 
-  // Close dropdown on outside click
+  // Close dropdown when clicking outside
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+    function onClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
     }
-    if (open) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open]);
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  const handleSignOut = async () => {
+    await logoutUser();
+    navigate('/');
+  };
 
   if (!user) return null;
 
   return (
-    <div className="fixed top-4 right-6 z-50" ref={dropdownRef}>
+    <div className="relative" ref={menuRef}>
       <button
-        className="w-12 h-12 rounded-full border-2 border-yellow-400 bg-black shadow-lg focus:outline-none transition-transform hover:scale-105"
-        onClick={() => setOpen((o) => !o)}
-        aria-label="Open user menu"
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center space-x-2 focus:outline-none"
       >
         <img
-          src={userData?.photoURL || defaultAvatar}
-          alt="User avatar"
-          className="w-full h-full rounded-full object-cover"
+          src={profile?.photoURL || '/images/avatar-placeholder.png'}
+          alt="Avatar"
+          className="w-10 h-10 rounded-full object-cover ring-2 ring-yellow-400"
         />
+        <ChevronDown className={`w-5 h-5 text-white transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
-      {/* Dropdown */}
-      <div
-        className={`absolute right-0 mt-2 w-80 bg-gray-900/95 backdrop-blur-lg rounded-xl shadow-lg border border-yellow-400 p-4 transition-all duration-200 ${
-          open ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'
-        }`}
-        style={{ minWidth: 280 }}
-      >
-        {/* Profile Overview */}
-        <div className="flex items-center gap-4 mb-4">
-          <img
-            src={userData?.photoURL || defaultAvatar}
-            alt="Avatar"
-            className="w-16 h-16 rounded-full border-2 border-yellow-400 object-cover"
-          />
-          <div>
-            <div className="text-lg font-bold">{userData?.displayName || user.displayName || 'No Name'}</div>
-            <div className="text-gray-400 text-sm">{user.email}</div>
-            <div className="text-gray-300 text-xs mt-1">{userData?.bio || 'No bio yet.'}</div>
-            <div className="flex gap-2 mt-2 text-xs text-yellow-300">
-              <span>Followers: {userData?.followers?.length || 0}</span>
-              <span>•</span>
-              <span>Videos: {userData?.videos?.length || 0}</span>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-64 bg-black/90 backdrop-blur-lg rounded-lg shadow-xl text-white z-50 overflow-hidden animate-fade-in">
+          {/* Profile Overview */}
+          <div className="p-4 border-b border-white/20">
+            <div className="flex items-center space-x-3">
+              <img
+                src={profile?.photoURL || '/images/avatar-placeholder.png'}
+                alt="Avatar"
+                className="w-12 h-12 rounded-full object-cover"
+              />
+              <div>
+                <p className="font-semibold">{profile?.displayName || 'Loading...'}</p>
+                <p className="text-sm text-gray-300">Member since 2023</p>
+              </div>
             </div>
           </div>
+
+          <ul className="p-2 space-y-1">
+            <li>
+              <button
+                onClick={() => navigate('/profile')}
+                className="flex items-center w-full px-3 py-2 rounded hover:bg-white/10 transition"
+              >
+                <User className="w-5 h-5 mr-2" /> My Profile
+              </button>
+            </li>
+
+            <li>
+              <button
+                onClick={() => navigate('/studio')}
+                className="flex items-center w-full px-3 py-2 rounded hover:bg-white/10 transition"
+              >
+                <Video className="w-5 h-5 mr-2" /> My Videos
+              </button>
+            </li>
+
+            <li>
+              <button
+                onClick={() => navigate('/history/watch')}
+                className="flex items-center w-full px-3 py-2 rounded hover:bg-white/10 transition"
+              >
+                <History className="w-5 h-5 mr-2" /> Watch History
+              </button>
+            </li>
+
+            <li>
+              <button
+                onClick={() => navigate('/history/search')}
+                className="flex items-center w-full px-3 py-2 rounded hover:bg-white/10 transition"
+              >
+                <Search className="w-5 h-5 mr-2" /> Search History
+              </button>
+            </li>
+
+            <li>
+              <button
+                onClick={() => navigate('/analytics')}
+                className="flex items-center w-full px-3 py-2 rounded hover:bg-white/10 transition"
+              >
+                <BarChart2 className="w-5 h-5 mr-2" /> Analytics
+              </button>
+            </li>
+
+            <li>
+              <button
+                onClick={() => navigate('/notifications')}
+                className="flex items-center w-full px-3 py-2 rounded hover:bg-white/10 transition"
+              >
+                <Bell className="w-5 h-5 mr-2" /> Notifications
+              </button>
+            </li>
+
+            <li>
+              <button
+                onClick={() => navigate('/settings')}
+                className="flex items-center w-full px-3 py-2 rounded hover:bg-white/10 transition"
+              >
+                <Settings className="w-5 h-5 mr-2" /> Settings
+              </button>
+            </li>
+          </ul>
+
+          <div className="border-t border-white/20">
+            <button
+              onClick={handleSignOut}
+              className="flex items-center w-full px-3 py-2 rounded hover:bg-red-600 transition text-red-400"
+            >
+              <LogOut className="w-5 h-5 mr-2" /> Sign Out
+            </button>
+          </div>
         </div>
-        <hr className="border-yellow-400/30 my-2" />
-        {/* Menu Options */}
-        <div className="space-y-2">
-          <button
-            className="w-full text-left px-4 py-2 rounded hover:bg-yellow-400/10 transition font-semibold"
-            onClick={() => { setOpen(false); navigate('/profile'); }}
-          >
-            👤 Full Profile
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 rounded hover:bg-yellow-400/10 transition font-semibold"
-            onClick={() => { setOpen(false); navigate('/settings'); }}
-          >
-            ⚙️ Account Settings
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 rounded hover:bg-yellow-400/10 transition font-semibold"
-            onClick={() => { setOpen(false); navigate('/studio'); }}
-          >
-            🎬 My Videos & Drafts
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 rounded hover:bg-yellow-400/10 transition font-semibold"
-            onClick={() => { setOpen(false); navigate('/analytics'); }}
-          >
-            📊 Creator Analytics
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 rounded hover:bg-yellow-400/10 transition font-semibold"
-            onClick={() => { setOpen(false); navigate('/notifications'); }}
-          >
-            🔔 Notifications
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 rounded hover:bg-yellow-400/10 transition font-semibold text-red-400"
-            onClick={async () => { await signOut(auth); setOpen(false); navigate('/auth'); }}
-          >
-            🚪 Sign Out
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
-} 
+}

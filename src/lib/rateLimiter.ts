@@ -1,6 +1,8 @@
+// src/lib/rateLimiter.ts
+
 interface RateLimiterOptions {
-  maxRequests: number;  // Maximum number of requests
-  timeWindow: number;   // Time window in milliseconds
+  maxRequests: number;
+  timeWindow: number;
 }
 
 class RateLimiter {
@@ -15,6 +17,8 @@ class RateLimiter {
 
   async throttle(): Promise<void> {
     const now = Date.now();
+
+    // Clear old timestamps
     this.requests = this.requests.filter(
       timestamp => now - timestamp < this.timeWindow
     );
@@ -22,7 +26,9 @@ class RateLimiter {
     if (this.requests.length >= this.maxRequests) {
       const oldestRequest = this.requests[0];
       const delay = this.timeWindow - (now - oldestRequest);
+
       if (delay > 0) {
+        console.warn(`RateLimiter: delaying ${delay}ms`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -34,7 +40,7 @@ class RateLimiter {
 export const rateLimiters = {
   channels: new RateLimiter({ maxRequests: 60, timeWindow: 60 * 1000 }),
   comments: new RateLimiter({ maxRequests: 30, timeWindow: 30 * 1000 }),
-  videos: new RateLimiter({ maxRequests: 45, timeWindow: 45 * 1000 })
+  videos: new RateLimiter({ maxRequests: 45, timeWindow: 45 * 1000 }),
 };
 
 class DailyQuotaTracker {
@@ -60,13 +66,13 @@ class DailyQuotaTracker {
     }
 
     if (this.quotaUsed + cost > this.DAILY_QUOTA) {
-      throw new Error('Daily API quota exceeded. Please try again tomorrow.');
+      throw new Error('Daily YouTube API quota exceeded.');
     }
 
     this.quotaUsed += cost;
   }
 
-  getQuotaRemaining(): number {
+  getRemaining(): number {
     return this.DAILY_QUOTA - this.quotaUsed;
   }
 }
@@ -76,9 +82,13 @@ export const quotaTracker = DailyQuotaTracker.getInstance();
 export async function withRateLimit<T>(
   limiter: RateLimiter,
   apiCall: () => Promise<T>,
-  quotaCost: number = 1
+  quotaCost = 1
 ): Promise<T> {
   await quotaTracker.checkAndUpdateQuota(quotaCost);
-  await limiter.throttle();
+  if (limiter?.throttle) {
+    await limiter.throttle();
+  } else {
+    console.warn('Rate limiter was undefined during request.');
+  }
   return apiCall();
 }

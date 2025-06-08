@@ -1,13 +1,12 @@
-// src/pages/Shorts.tsx
+// src/pages/Shorts.tsx - Updated to remove the duplicate navigation bar
 import React, { useState, useEffect, useRef } from 'react';
-import BaseLayout from '../components/BaseLayout';
-import SearchBar from '../components/SearchBar';
-import VideoGrid from '../components/VideoGrid';
 import { getVideos, Video } from '../lib/services/videoService';
 import { useSwipeable } from 'react-swipeable';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../lib/firebase';
 import { doc, updateDoc, increment } from 'firebase/firestore';
+import { Heart, MessageSquare, Share2, Volume2, VolumeX } from 'lucide-react';
+import YouTube, { YouTubeEvent } from 'react-youtube';
 
 interface SwipeVideo {
   id: string;
@@ -27,26 +26,55 @@ export default function Shorts() {
   const [rewardCountdown, setRewardCountdown] = useState(10);
   const [user] = useAuthState(auth);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const playerRef = useRef<any>(null);
+  const [isMuted, setIsMuted] = useState(true);
 
-  // ─── Tabs ─────────────────────────────────────────────────────────────
-  const tabs = ['Grid View', 'Swipe View'] as const;
-  const [activeTab, setActiveTab] = useState<typeof tabs[number]>('Grid View');
+  // Add effect to hide duplicate navigation
+  useEffect(() => {
+    // Function to remove duplicate navigation
+    const hideExtraNav = () => {
+      // Target the specific navigation elements based on the HTML you shared
+      const allNavs = document.querySelectorAll('.flex.items-center.justify-between header nav, nav.flex.items-center');
+      
+      if (allNavs.length > 1) {
+        // Only hide the duplicate (the second navigation)
+        for (let i = 1; i < allNavs.length; i++) {nnn
+          const nav = allNavs[i] as HTMLElement;
+          if (nav) {
+            nav.style.display = 'none';
+          }
+        }
+      }
+      
+      // Also try to find any other duplicate navigation by their location
+      const possibleDuplicates = document.querySelectorAll('.flex.items-center.gap-1');
+      possibleDuplicates.forEach((el) => {
+        const element = el as HTMLElement;
+        // Check if this is likely a navigation menu
+        const hasLinks = element.querySelectorAll('a[href="/home"], a[href="/shorts"]').length > 0;
+        if (hasLinks) {
+          // We're in the shorts page and found a nav with home/shorts links
+          // This is likely the duplicate we want to hide
+          element.style.display = 'none';
+        }
+      });
+    };
+    
+    // Run on component mount and after a slight delay to ensure DOM is ready
+    hideExtraNav();
+    const timeoutId = setTimeout(hideExtraNav, 200);
+    
+    // Clean up
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   // ─── Load & classify shorts ────────────────────────────────────────────
   useEffect(() => {
     getVideos()
       .then(all => {
-        // define shorts as either <60s OR tagged “#shorts”
-        const shorts = all.filter(
-          v =>
-            v.duration < 60 ||
-            v.title.toLowerCase().includes('#shorts')
-        );
-
-        // grid gets those shorts
+        // Show all videos with duration under 4 minutes as shorts
+        const shorts = all.filter(v => v.duration > 0 && v.duration < 240);
         setVideos(shorts);
-
-        // swipe gets same list with embed URLs
         setSwipeVideos(
           shorts.map(v => ({
             id: v.id,
@@ -61,7 +89,7 @@ export default function Shorts() {
 
   // ─── Reward Timer ──────────────────────────────────────────────────────
   useEffect(() => {
-    if (activeTab !== 'Swipe View' || swipeVideos.length === 0) return;
+    if (swipeVideos.length === 0) return;
 
     setRewardCountdown(10);
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -78,7 +106,7 @@ export default function Shorts() {
     }, 1000);
 
     return () => intervalRef.current && clearInterval(intervalRef.current);
-  }, [activeTab, currentIndex, swipeVideos]);
+  }, [currentIndex, swipeVideos]);
 
   const rewardUser = async () => {
     if (!user) return;
@@ -107,94 +135,118 @@ export default function Shorts() {
     preventScrollOnSwipe: true,
     trackTouch: true,
     trackMouse: true,
+    delta: 20,
+    flickThreshold: 0.2,
+    axis: 'y',
   });
 
-  // ─── Grid filter ───────────────────────────────────────────────────────
-  const filteredGrid = videos.filter(v =>
-    v.title.toLowerCase().includes(search.toLowerCase())
-  );
+  // ─── Autoplay Next Video ──────────────────────────────────────────────
+  const onPlayerReady = (e: YouTubeEvent) => {
+    playerRef.current = e.target;
+  };
+
+  const onPlayerStateChange = (e: YouTubeEvent) => {
+    // 0 = ended
+    if (e.data === window.YT?.PlayerState?.ENDED && currentIndex < swipeVideos.length - 1) {
+      setCurrentIndex(i => i + 1);
+    }
+  };
 
   // ─── Render ───────────────────────────────────────────────────────────
   return (
-    <BaseLayout>
+    <>
+      {/* Add inline CSS to hide duplicate navigation (optional, can be removed if not needed) */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        /* Hide duplicate navigation in Shorts page */
+        .flex.items-center.justify-between nav + nav,
+        .flex.items-center.justify-between nav:not(:first-of-type),
+        .flex.items-center.gap-1:not(:first-of-type) {
+          display: none !important;
+        }
+        
+        /* Target the specific navigation we saw in your HTML */
+        .lucide.lucide-house, .lucide.lucide-film, .lucide.lucide-video {
+          /* This won't hide the icons, but marks them for next selector */
+          data-navbar-item: true;
+        }
+        
+        /* If we find a navbar that's not the first with these icons, hide it */
+        .flex:has(> a > div > [data-navbar-item]):not(:first-of-type) {
+          display: none !important;
+        }
+      `}} />
       <div className="max-w-7xl mx-auto py-8">
-        {/* Tabs */}
-        <div className="flex gap-4 mb-6">
-          {tabs.map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                activeTab === tab
-                  ? 'bg-yellow-400 text-black'
-                  : 'bg-black/30 text-white hover:bg-black/50'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Grid View */}
-        {activeTab === 'Grid View' && (
-          <>
-            <SearchBar value={search} onChange={setSearch} />
-            {loadingGrid ? (
-              <div className="text-center text-gray-300">Loading shorts…</div>
-            ) : (
-              <VideoGrid videos={filteredGrid} />
-            )}
-          </>
-        )}
-
-        {/* Swipe View */}
-        {activeTab === 'Swipe View' && (
+        {/* Only show swipe view for Shorts */}
+        {swipeVideos.length === 0 ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-gray-300 mb-2">No shorts available</p>
+              <p className="text-sm text-gray-500">Try again later or check your connection</p>
+            </div>
+          </div>
+        ) : (
           <div
             {...swipeHandlers}
-            className="h-screen w-screen bg-black text-white overflow-hidden relative"
+            className="h-[80vh] w-full bg-black rounded-2xl overflow-hidden relative"
           >
-            {swipeVideos.length === 0 ? (
-              <div className="h-full flex items-center justify-center">
-                No shorts available.
-              </div>
-            ) : (
-              <>
-                {/* YouTube Embed */}
-                <iframe
-                  key={swipeVideos[currentIndex].id}
-                  src={swipeVideos[currentIndex].embedUrl}
-                  className="w-full h-full absolute inset-0"
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  allowFullScreen
+            {/* YouTube Embed with mute/unmute */}
+            <YouTube
+              videoId={swipeVideos[currentIndex].id}
+              opts={{
+                height: '100%',
+                width: '100%',
+                playerVars: {
+                  autoplay: 1,
+                  mute: isMuted ? 1 : 0,
+                  controls: 0,
+                  modestbranding: 1,
+                  loop: 0,
+                  rel: 0,
+                },
+              }}
+              className="w-full h-full absolute inset-0"
+              onReady={onPlayerReady}
+              onStateChange={onPlayerStateChange}
+            />
+            {/* Mute/Unmute Button */}
+            <button
+              className="absolute top-4 right-4 z-30 bg-black/60 rounded-full p-2 hover:bg-black/80 transition"
+              onClick={() => setIsMuted(m => !m)}
+            >
+              {isMuted ? <VolumeX className="w-6 h-6 text-white" /> : <Volume2 className="w-6 h-6 text-white" />}
+            </button>
+            {/* Video Progress Bar */}
+            <div className="absolute top-4 left-0 right-0 flex justify-center gap-1 px-4 z-20">
+              {swipeVideos.map((_, idx) => (
+                <div 
+                  key={idx} 
+                  className={`h-1 rounded-full flex-1 max-w-16 ${
+                    idx === currentIndex 
+                      ? 'bg-yellow-400' 
+                      : idx < currentIndex 
+                        ? 'bg-white/50' 
+                        : 'bg-white/20'
+                  }`}
                 />
-
-                {/* Info & Countdown */}
-                <div className="absolute bottom-12 left-4 z-10 space-y-1">
-                  <h2 className="text-lg font-bold">
-                    {swipeVideos[currentIndex].title}
-                  </h2>
-                  <div className="mt-2 text-yellow-400 font-bold">
-                    ⏳ Reward in: {rewardCountdown}s
-                  </div>
+              ))}
+            </div>
+            {/* Info & Countdown */}
+            <div className="absolute bottom-12 left-4 z-20 space-y-1 max-w-[70%] p-4 rounded-xl bg-black/40 backdrop-blur-sm">
+              <h2 className="text-lg font-bold text-white">
+                {swipeVideos[currentIndex].title}
+              </h2>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center text-black text-xs">
+                  ⏳
                 </div>
-
-                {/* Actions */}
-                <div className="absolute right-4 bottom-12 z-10 flex flex-col items-center gap-4">
-                  <button className="bg-white bg-opacity-10 p-2 rounded-full hover:bg-opacity-30">
-                    ❤️
-                  </button>
-                  <button className="bg-white bg-opacity-10 p-2 rounded-full hover:bg-opacity-30">
-                    💬
-                  </button>
-                  <button className="bg-white bg-opacity-10 p-2 rounded-full hover:bg-opacity-30">
-                    ↗️
-                  </button>
-                </div>
-              </>
-            )}
+                <span className="text-yellow-400 font-medium">
+                  Reward in: {rewardCountdown}s
+                </span>
+              </div>
+            </div>
           </div>
         )}
       </div>
-    </BaseLayout>
+    </>
   );
 }

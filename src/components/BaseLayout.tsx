@@ -1,123 +1,171 @@
 // src/components/BaseLayout.tsx
-import React, { ReactNode, useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Home, Film, Newspaper, Palette, User, List, Settings } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import UserAvatarDropdown from './UserAvatarDropdown';
+import { auth } from '../lib/firebase';
+import {
+  Home,
+  Video,
+  CircleDot,
+  Newspaper,
+  Paintbrush,
+  User,
+  List,
+  Settings,
+} from 'lucide-react';
+import { getVideos } from '../lib/services/videoService';
+import type { Video as VideoType } from '../lib/services/videoService';
 
-interface BaseLayoutProps {
-  children: ReactNode;
+export default function BaseLayout({ children }: { children: React.ReactNode }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [search, setSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<VideoType[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setIsLoggedIn(!!user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Search effect
+  useEffect(() => {
+    if (search.trim().length === 0) {
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+    setSearchLoading(true);
+    getVideos().then((videos) => {
+      const filtered = videos.filter((v) =>
+        v.title.toLowerCase().includes(search.toLowerCase())
+      );
+      setSearchResults(filtered.slice(0, 8));
+      setShowResults(true);
+      setSearchLoading(false);
+    });
+  }, [search]);
+
+  // Hide results on navigation
+  useEffect(() => {
+    setShowResults(false);
+  }, [location.pathname]);
+
+  return (
+    <div className="min-h-screen bg-black text-white relative">
+      {/* Header */}
+      <header className="flex justify-between items-center px-4 py-3 shadow-md bg-black/80 backdrop-blur-sm z-50 relative">
+        {/* Left: Menu + Logo */}
+        <div className="flex items-center space-x-4">
+          {isLoggedIn && (
+            <button
+              onClick={() => setMenuOpen((prev) => !prev)}
+              className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-semibold px-4 py-1 rounded-lg shadow hover:opacity-90 transition"
+            >
+              Menu <span className="ml-1">⋮</span>
+            </button>
+          )}
+
+          <div className="flex items-center space-x-2">
+            <img src="/images/viewsboost-logo.png" alt="Logo" className="h-10 w-10" />
+            <span className="text-xl font-bold text-yellow-400">ViewsBoost</span>
+          </div>
+        </div>
+
+        {/* Right: Avatar */}
+        <div className="relative">{isLoggedIn && <UserAvatarDropdown />}</div>
+
+        {/* Sidebar Dropdown Menu */}
+        {menuOpen && isLoggedIn && (
+          <div className="absolute top-16 left-4 bg-zinc-900 rounded-xl shadow-lg w-56 p-4 z-50 space-y-4">
+            <MenuItem icon={<Home size={20} />} label="Home" path="/dashboard" navigate={navigate} />
+            <MenuItem icon={<Video size={20} />} label="Shorts" path="/shorts" navigate={navigate} />
+            <MenuItem icon={<CircleDot size={20} className="text-red-500" />} label="Live" path="/live" navigate={navigate} highlight />
+            <MenuItem icon={<Newspaper size={20} />} label="News" path="/news" navigate={navigate} />
+            <MenuItem icon={<Paintbrush size={20} />} label="Studio" path="/studio" navigate={navigate} />
+            <MenuItem icon={<User size={20} />} label="Profile" path="/profile/me" navigate={navigate} />
+            <MenuItem icon={<List size={20} />} label="Feed" path="/feed" navigate={navigate} />
+            <MenuItem icon={<Settings size={20} />} label="Settings" path="/settings" navigate={navigate} />
+          </div>
+        )}
+      </header>
+
+      {/* Search Bar for Dashboard/Homepage only */}
+      {location.pathname === '/dashboard' && (
+        <div className="flex flex-col items-center mt-6 relative z-30">
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search videos, creators, topics..."
+            className="w-full max-w-xl px-4 py-2 rounded-lg bg-zinc-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            onFocus={() => searchResults.length > 0 && setShowResults(true)}
+            autoComplete="off"
+          />
+          {showResults && (
+            <div className="absolute top-12 w-full max-w-xl bg-zinc-900 rounded-lg shadow-lg border border-zinc-700 mt-2 overflow-hidden">
+              {searchLoading ? (
+                <div className="p-4 text-center text-gray-400">Searching…</div>
+              ) : searchResults.length === 0 ? (
+                <div className="p-4 text-center text-gray-400">No results found.</div>
+              ) : (
+                <ul>
+                  {searchResults.map((v) => (
+                    <li
+                      key={v.id}
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-zinc-800 cursor-pointer transition"
+                      onClick={() => {
+                        navigate(`/video/${v.id}`);
+                        setShowResults(false);
+                        setSearch('');
+                      }}
+                    >
+                      <img
+                        src={v.thumbnail || `/images/video-thumb-placeholder.png`}
+                        alt={v.title}
+                        className="w-14 h-8 object-cover rounded"
+                      />
+                      <span className="truncate text-sm">{v.title}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Main Page Content */}
+      <main className="p-4">{children}</main>
+    </div>
+  );
 }
 
-const menuItems = [
-  { label: 'Home',    to: '/home',    icon: <Home size={24} /> },
-  { label: 'Shorts',  to: '/shorts',  icon: <Film size={24} /> },
-  { label: 'Live',    to: '/live',    icon: <span className="block h-3 w-3 bg-red-600 rounded-full" /> },
-  { label: 'News',    to: '/news',    icon: <Newspaper size={24} /> },
-  { label: 'Studio',  to: '/studio',  icon: <Palette size={24} /> },
-  { label: 'Profile', to: '/profile', icon: <User size={24} /> },
-  { label: 'Feed',    to: '/feed',    icon: <List size={24} /> },
-  { label: 'Settings',to: '/settings',icon: <Settings size={24} /> },
-];
-
-export default function BaseLayout({ children }: BaseLayoutProps) {
-  const { pathname } = useLocation();
-  const isHome    = pathname === '/home';
-  const isLanding = pathname === '/';
-  const isAuth    = pathname === '/auth' || pathname === '/signup';
-
-  // hide all framing (header/sidebar) on landing + auth/signup
-  const hideFrame = isLanding || isAuth;
-
-  const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
-  useEffect(() => {
-    const root = document.documentElement;
-    if (dark) {
-      root.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      root.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [dark]);
-
-  // If we're on landing or auth pages, just render the background + children
-  if (hideFrame) {
-    return (
-      <div className="relative min-h-screen">
-        <div className="fixed inset-0 bg-[url('/images/satin-phone-bg.png')] bg-cover bg-center" />
-        <div className="fixed inset-0 bg-black/60" />
-        <div className="relative z-10 flex items-center justify-center p-4">
-          {children}
-        </div>
-      </div>
-    );
-  }
-
-  // Otherwise render full layout with header + optional sidebar
+function MenuItem({
+  icon,
+  label,
+  path,
+  navigate,
+  highlight = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  path: string;
+  navigate: (path: string) => void;
+  highlight?: boolean;
+}) {
   return (
-    <div className="relative min-h-screen">
-      {/* Background layers */}
-      <div className="fixed inset-0 bg-[url('/images/satin-phone-bg.png')] bg-cover bg-center z-0" />
-      <div className="fixed inset-0 bg-black/60 z-10" />
-
-      <div className="relative z-20 flex min-h-screen">
-        {/* Sidebar only on /home */}
-        {isHome && (
-          <aside
-            className="hidden md:flex flex-col justify-between fixed inset-y-0 left-0 w-64
-                       backdrop-blur-lg bg-white/5 dark:bg-black/20 p-6 space-y-6 rounded-r-3xl shadow-lg"
-          >
-            <nav className="flex-1 flex flex-col gap-4">
-              {menuItems.map(({ label, to, icon }) => {
-                const active = pathname === to;
-                return (
-                  <Link
-                    key={to}
-                    to={to}
-                    className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition ${
-                      active
-                        ? 'bg-white/20 dark:bg-white/10'
-                        : 'hover:bg-white/10 dark:hover:bg-white/20'
-                    }`}
-                  >
-                    <div className={active ? 'text-yellow-400' : 'text-white'}>
-                      {icon}
-                    </div>
-                    <span className={`text-lg font-semibold ${active ? 'text-yellow-400' : 'text-white'}`}>
-                      {label}
-                    </span>
-                  </Link>
-                );
-              })}
-            </nav>
-
-            <button
-              onClick={() => setDark(d => !d)}
-              className="self-center text-white hover:text-yellow-400 transition"
-            >
-              Toggle {dark ? 'Light' : 'Dark'}
-            </button>
-          </aside>
-        )}
-
-        {/* Main content area */}
-        <div className={`flex-1 flex flex-col ${isHome ? 'md:pl-72' : ''}`}>
-          {/* Header */}
-          <header className="flex items-center justify-between p-4">
-            <Link to="/home" className="flex items-center gap-2">
-              <img src="/images/viewsboost-logo.png" alt="ViewsBoost" className="w-12 h-12" />
-              <span className="text-3xl font-bold text-yellow-400">ViewsBoost</span>
-            </Link>
-
-            <div>
-              <UserAvatarDropdown />
-            </div>
-          </header>
-
-          {/* Page body */}
-          <main className="flex-1 overflow-auto">{children}</main>
-        </div>
-      </div>
-    </div>
+    <button
+      onClick={() => navigate(path)}
+      className="flex items-center space-x-3 text-white hover:text-yellow-300 transition w-full text-left"
+    >
+      <span className={highlight ? 'text-red-500' : ''}>{icon}</span>
+      <span className={highlight ? 'text-yellow-400 font-semibold' : 'text-gray-100'}>{label}</span>
+    </button>
   );
 }

@@ -7,6 +7,7 @@ import { getAuth } from 'firebase/auth';
 import App from './App';
 import './index.css';
 import { LanguageProvider } from './contexts/LanguageContext';
+import { ThemeProvider } from './contexts/ThemeContext'; // ✅ Added
 
 // Firebase configuration
 const firebaseConfig = {
@@ -40,12 +41,15 @@ if (import.meta.env.DEV) {
   });
 }
 
+// ✅ Wrap App in both ThemeProvider and LanguageProvider
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <LanguageProvider>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </LanguageProvider>
+    <ThemeProvider>
+      <LanguageProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </LanguageProvider>
+    </ThemeProvider>
   </React.StrictMode>
 );

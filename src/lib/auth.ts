@@ -5,8 +5,10 @@ import {
   signOut,
   GoogleAuthProvider,
   signInWithPopup,
+  User,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
 
 const ADMIN_EMAIL = 'cham212003@gmail.com';
 
@@ -69,3 +71,19 @@ export const setupUserInFirestore = async (userId: string, email: string, role: 
 export const isAdmin = (email: string | null) => {
   return email === 'cham212003@gmail.com';
 }; 
+
+export function useAuth() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  return { user, loading };
+} 
