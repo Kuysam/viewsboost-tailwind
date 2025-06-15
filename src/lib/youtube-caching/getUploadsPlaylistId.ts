@@ -1,16 +1,37 @@
-import { getNextApiKey, BASE_URL } from "../youtube";
-import { handleAPIError, APIError, ErrorMessages } from "../errorHandling";
+// src/lib/youtube-caching/getUploadsPlaylistId.ts
 
-export async function getUploadsPlaylistId(channelId: string): Promise<string> {
+import { getAPIKey } from '../youtube/apiKeyManager';
+
+export async function getUploadsPlaylistId(channelId: string) {
+  // Channel IDs should start with UC
+  if (!/^UC/.test(channelId)) {
+    console.error('Invalid channel ID:', channelId);
+    throw new Error('Invalid channel ID: ' + channelId);
+  }
+
+  const apiKey = getAPIKey();
+  const url = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${apiKey}`;
   try {
-    const url = `${BASE_URL}/channels?part=contentDetails&id=${channelId}&key=${getNextApiKey()}`;
     const res = await fetch(url);
-    if (!res.ok) throw new APIError('Failed to fetch channel contentDetails', res.status);
-    const data = await res.json();
-    const item = data.items?.[0];
-    if (!item) throw new APIError(ErrorMessages.NOT_FOUND, 404);
-    return item.contentDetails.relatedPlaylists.uploads;
-  } catch (error) {
-    throw handleAPIError(error);
+
+    if (!res.ok) {
+      const errorBody = await res.json();
+      console.error('YouTube API Error:', errorBody);
+      throw new Error(
+        `YouTube API error ${res.status}: ${errorBody?.error?.message || res.statusText}`
+      );
+    }
+
+    const json = await res.json();
+    const uploadsPlaylistId = json?.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+
+    if (!uploadsPlaylistId) {
+      throw new Error('Failed to find uploads playlist for channel: ' + channelId);
+    }
+
+    return uploadsPlaylistId;
+  } catch (err) {
+    console.error('Failed to fetch uploads playlist ID:', err);
+    throw err;
   }
 }

@@ -14,6 +14,7 @@ interface Video {
   progress: number;
   lastPosition: number;
   totalWatched: number;
+  type: string;
 }
 
 interface WatchHistoryEntry {
@@ -87,12 +88,14 @@ export default function ContinueWatching() {
                       item.snippet.thumbnails.high?.url ||
                       `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
                     duration: parseISODuration(item.contentDetails.duration),
+                    type: 'video',
                   };
                 }
               } catch (err) {
                 // fallback to YouTube default thumbnail
                 video.thumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
                 video.duration = 0;
+                video.type = 'video';
               }
             }
             return {
@@ -103,8 +106,9 @@ export default function ContinueWatching() {
             };
           })
         );
-
-        setVideos(videosWithDetails);
+        // Filter out shorts
+        const nonShortVideos = videosWithDetails.filter(v => v.type !== 'short');
+        setVideos(nonShortVideos);
       } catch (err) {
         console.error('Failed to load continue watching:', err);
       } finally {

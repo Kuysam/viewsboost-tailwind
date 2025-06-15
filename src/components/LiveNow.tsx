@@ -7,7 +7,11 @@ export default function LiveNow() {
 
   useEffect(() => {
     getVideos()
-      .then(data => setStreams(data.filter(v => v.type === 'live')))
+      .then(data => {
+        // Filter for live videos and ensure they are NOT shorts (i.e., duration >= 4 minutes)
+        const liveStreams = data.filter(v => v.type === 'live' && v.duration >= 240);
+        setStreams(liveStreams);
+      })
       .catch(() => setStreams([]))
       .finally(() => setLoading(false));
   }, []);

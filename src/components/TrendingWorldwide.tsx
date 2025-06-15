@@ -23,6 +23,9 @@ export default function TrendingWorldwide({ videos = [] }: Props) {
     }
   };
 
+  // Filter out shorts (videos under 4 minutes)
+  const filteredVideos = videos.filter(video => video.type !== 'short');
+
   useEffect(() => {
     return () => {
       if (hoverTimeoutRef.current) {
@@ -50,10 +53,10 @@ export default function TrendingWorldwide({ videos = [] }: Props) {
     <section className="mb-8">
       <h2 className="text-xl font-bold text-yellow-400 mb-4">Trending Worldwide</h2>
       <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
-        {videos.length === 0 && (
+        {filteredVideos.length === 0 && (
           <div className="text-gray-400">No trending videos available.</div>
         )}
-        {videos.map((video) => (
+        {filteredVideos.map((video) => (
           <div
             key={video.id}
             className="w-64 h-36 rounded-lg shadow-lg flex-shrink-0 relative overflow-hidden"

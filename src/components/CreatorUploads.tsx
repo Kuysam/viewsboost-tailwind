@@ -23,7 +23,7 @@ export default function CreatorUploads() {
       try {
         const data = await getVideos();
         // Only show normal videos, not shorts or live
-        setVideos(data.filter(v => v.type === 'video'));
+        setVideos(data.filter(v => v.type !== 'short'));
       } catch (err) {
         console.error('Failed to load creator videos:', err);
       } finally {

@@ -1,0 +1,142 @@
+[
+  {
+    "title": "Vlog Style",
+    "category": "YouTube Video",
+    "desc": "Classic vlog with intro/outro, subscribe CTA.",
+    "icon": "🎬",
+    "preview": "https://images.unsplash.com/photo-1505330622279-bf7d7fc918f4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxWbG9nJTIwU3R5bGV8ZW58MHwwfHx8MTc0OTk3NTUzNHww&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Gaming Stream",
+    "category": "YouTube Video",
+    "desc": "Stream overlay, facecam, chat highlight.",
+    "icon": "🕹️",
+    "preview": "https://images.unsplash.com/photo-1593305841991-05c297ba4575?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxHYW1pbmclMjBTdHJlYW18ZW58MHwwfHx8MTc0OTk3NTUzNXww&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "How-to/Educational",
+    "category": "YouTube Video",
+    "desc": "Step-by-step, split screen, captions.",
+    "icon": "🎓",
+    "preview": "https://images.unsplash.com/photo-1664382953518-4a664ab8a8c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxIb3ctdG8lMkZFZHVjYXRpb25hbHxlbnwwfDB8fHwxNzQ5OTc1NTM2fDA&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Podcast/Interview",
+    "category": "YouTube Video",
+    "desc": "Side-by-side guest layout, waveform.",
+    "icon": "🎤",
+    "preview": "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxQb2RjYXN0JTJGSW50ZXJ2aWV3fGVufDB8MHx8fDE3NDk5NzU1Mzh8MA&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Trending Shorts",
+    "category": "YouTube Video",
+    "desc": "Super fast, bold subtitles, jump cuts.",
+    "icon": "🌟",
+    "preview": "https://images.unsplash.com/photo-1470784080862-94d3f19a9cfb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxUcmVuZGluZyUyMFNob3J0c3xlbnwwfDB8fHwxNzQ5OTc1NTM5fDA&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Reaction",
+    "category": "YouTube Video",
+    "desc": "Big webcam, meme overlays, viral moments.",
+    "icon": "⚡",
+    "preview": "https://images.unsplash.com/photo-1588720516255-fc99581c9716?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxSZWFjdGlvbnxlbnwwfDB8fHwxNzQ5OTc1NTQxfDA&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Animated Logo",
+    "category": "YouTube Intro",
+    "desc": "Logo reveal with motion.",
+    "icon": "⚡",
+    "preview": "https://images.unsplash.com/photo-1612222869049-d8ec83637a3c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxBbmltYXRlZCUyMExvZ298ZW58MHwwfHx8MTc0OTk3NTU0Mnww&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Text Swipe",
+    "category": "YouTube Intro",
+    "desc": "Animated text, swipe intro.",
+    "icon": "💫",
+    "preview": "https://images.unsplash.com/photo-1596526131090-bcbe09e432d3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxUZXh0JTIwU3dpcGV8ZW58MHwwfHx8MTc0OTk3NTU0NHww&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Multi-Video Layout",
+    "category": "Customize Video",
+    "desc": "Combine videos, transitions, overlays.",
+    "icon": "🎞️",
+    "preview": "https://images.unsplash.com/photo-1521369817787-9f428eb5d54d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxNdWx0aS1WaWRlbyUyMExheW91dHxlbnwwfDB8fHwxNzQ5OTc1NTQ1fDA&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Brand Kit",
+    "category": "Customize Video",
+    "desc": "Upload your logo, brand colors.",
+    "icon": "💡",
+    "preview": "https://images.unsplash.com/photo-1621986191859-a88d73c6ed0b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxCcmFuZCUyMEtpdHxlbnwwfDB8fHwxNzQ5OTc1NTQ2fDA&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Cinematic",
+    "category": "Video Landscape",
+    "desc": "Widescreen 16:9, cinematic overlays.",
+    "icon": "🖥️",
+    "preview": "https://images.unsplash.com/photo-1610847455028-9e55e62bac33?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxDaW5lbWF0aWN8ZW58MHwwfHx8MTc0OTk3NTU0OHww&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Photo Highlight",
+    "category": "Video Landscape",
+    "desc": "Photo/video grid landscape.",
+    "icon": "🌄",
+    "preview": "https://images.unsplash.com/photo-1522162193366-fd9e95f8e9cb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxQaG90byUyMEhpZ2hsaWdodHxlbnwwfDB8fHwxNzQ5OTc1NTQ5fDA&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Ultra HD Clean",
+    "category": "Video Full HD (4K/8K)",
+    "desc": "Super crisp, minimal design.",
+    "icon": "🌌",
+    "preview": "https://images.unsplash.com/photo-1478473495191-2d8dd1398896?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxVbHRyYSUyMEhEJTIwQ2xlYW58ZW58MHwwfHx8MTc0OTk3NTU1MXww&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Animated Overlay",
+    "category": "Video Full HD (4K/8K)",
+    "desc": "Sparkle/highlight for UHD.",
+    "icon": "✨",
+    "preview": "https://images.unsplash.com/photo-1500959075274-a11f8ebedbb7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxBbmltYXRlZCUyME92ZXJsYXl8ZW58MHwwfHx8MTc0OTk3NTU1Mnww&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Tweet Reaction",
+    "category": "Twitter Video",
+    "desc": "Bold border, tweet overlay.",
+    "icon": "🐦",
+    "preview": "https://images.unsplash.com/photo-1585007600338-ec568e187cc1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxUd2VldCUyMFJlYWN0aW9ufGVufDB8MHx8fDE3NDk5NzU1NTR8MA&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Branded Template",
+    "category": "ViewsBoost Video",
+    "desc": "Official ViewsBoost look.",
+    "icon": "🚀",
+    "preview": "https://images.unsplash.com/photo-1472289065668-ce650ac443d2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxCcmFuZGVkJTIwVGVtcGxhdGV8ZW58MHwwfHx8MTc0OTk3NTU1NXww&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Clickbait",
+    "category": "YouTube Thumbnail",
+    "desc": "Bright colors, big text.",
+    "icon": "🖼️",
+    "preview": "https://images.unsplash.com/photo-1642314524216-f119c635fc08?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxDbGlja2JhaXR8ZW58MHwwfHx8MTc0OTk3NTU1Nnww&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Minimal",
+    "category": "YouTube Thumbnail",
+    "desc": "Clean, modern, focused.",
+    "icon": "🔥",
+    "preview": "https://images.unsplash.com/photo-1506619216599-9d16d0903dfd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxNaW5pbWFsfGVufDB8MHx8fDE3NDk5NzU1NTh8MA&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Preview",
+    "category": "ViewsBoost Thumbnail",
+    "desc": "Brand color, logo overlay.",
+    "icon": "🟦",
+    "preview": "https://images.unsplash.com/photo-1467049293311-8c2750cda7a1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxQcmV2aWV3fGVufDB8MHx8fDE3NDk5NzU1NTl8MA&ixlib=rb-4.1.0&q=80&w=400"
+  },
+  {
+    "title": "Side by Side",
+    "category": "Multi-screen (Customizable)",
+    "desc": "Multiple screens, split view.",
+    "icon": "🖥️",
+    "preview": "https://images.unsplash.com/photo-1495707800306-e240c5a0d65f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NjQyNDF8MHwxfHNlYXJjaHwxfHxTaWRlJTIwYnklMjBTaWRlfGVufDB8MHx8fDE3NDk5NzU1NjF8MA&ixlib=rb-4.1.0&q=80&w=400"
+  }
+]

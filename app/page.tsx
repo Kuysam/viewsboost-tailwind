@@ -4,14 +4,14 @@ import React, { useEffect, useState } from 'react';
 
 interface ViewsResponse {
   views: number;
-  error?: string;
+  error?: st
+  ring;
 }
 
 export default function Home() {
   const [views, setViews] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-
   const fetchViews = async () => {
     setIsLoading(true);
     try {

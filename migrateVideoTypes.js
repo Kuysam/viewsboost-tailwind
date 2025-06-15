@@ -26,12 +26,7 @@ const db = admin.firestore();
  */
 function getVideoType(data) {
   const duration = data.duration || 0;
-  const title = (data.title || '').toLowerCase();
-  const isShort =
-    duration < 60 &&
-    (title.includes('#short') ||
-      title.includes('short') ||
-      (data.height && data.width && data.height > data.width));
+  const isShort = duration <= 240; // 4 minutes = 240 seconds
 
   if (isShort) return 'short';
   if (data.liveBroadcastContent === 'live' || data.liveStreamingDetails) return 'live';

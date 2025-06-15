@@ -5,6 +5,7 @@ import { auth, db } from '../lib/firebase';
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Eye, EyeOff } from 'lucide-react';
+import { getChannelDetails, getUploadsPlaylistId, getPlaylistVideos } from '../lib/youtube';
 
 interface FormData {
   firstName: string;
@@ -110,12 +111,31 @@ export default function GetStarted() {
     }
 
     try {
-      // Here you would typically validate the channel ID with YouTube API
-      // For now, we'll just check if it's not empty
+      // Validate channel ID and fetch initial videos
+      const channelDetails = await getChannelDetails(channelId);
+      if (!channelDetails) {
+        setChannelIdError('Invalid channel ID');
+        return false;
+      }
+
+      // Get uploads playlist ID
+      const uploadsPlaylistId = await getUploadsPlaylistId(channelId);
+      if (!uploadsPlaylistId) {
+        setChannelIdError('Could not fetch channel uploads');
+        return false;
+      }
+
+      // Fetch initial videos to verify access
+      const videos = await getPlaylistVideos(uploadsPlaylistId);
+      if (!videos || videos.length === 0) {
+        setChannelIdError('No videos found in channel');
+        return false;
+      }
+
       setChannelIdError(null);
       return true;
     } catch (err) {
-      setChannelIdError('Invalid channel ID');
+      setChannelIdError('Invalid channel ID or access denied');
       return false;
     }
   };
@@ -166,6 +186,14 @@ export default function GetStarted() {
       } else {
         await setDoc(doc(db, 'viewers', user.uid), userData);
       }
+      // Always create a user doc for rewards and global profile
+      await setDoc(doc(db, 'users', user.uid), {
+        email: data.email,
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
+        displayName: data.firstName + ' ' + data.lastName,
+        role: isCreator ? 'creator' : 'viewer'
+      }, { merge: true });
 
       navigate('/dashboard');
     } catch (err: any) {
@@ -186,10 +214,21 @@ export default function GetStarted() {
       ]);
 
       if (!creatorSnap.exists() && !viewerSnap.exists()) {
-        // New user - redirect to complete profile
+        // New user - create user doc for rewards
+        await setDoc(doc(db, 'users', user.uid), {
+          email: user.email,
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString(),
+          displayName: user.displayName,
+          role: isCreator ? 'creator' : 'viewer'
+        }, { merge: true });
+        // Redirect to complete profile
         navigate('/complete-profile', { state: { isCreator } });
       } else {
-        // Existing user - redirect to dashboard
+        // Existing user - update lastLogin
+        await setDoc(doc(db, 'users', user.uid), {
+          lastLogin: new Date().toISOString(),
+        }, { merge: true });
         navigate('/dashboard');
       }
     } catch (err: any) {

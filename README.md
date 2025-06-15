@@ -52,3 +52,26 @@ export default tseslint.config({
   },
 })
 ```
+
+# ViewsBoost
+
+## Environment Variables
+
+Copy `.env.example` to `.env` and fill in your keys:
+
+```
+cp .env.example .env
+```
+
+- `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, etc.: Your Firebase project config
+- `VITE_YT_API_KEY` or `VITE_YT_API_KEY_1`, etc.: Your YouTube Data API v3 key(s)
+- `VITE_YOUTUBE_API_BASE_URL`: Usually `https://www.googleapis.com/youtube/v3`
+
+## User Document for Rewards
+
+To ensure rewards and profile features work, every user must have a document in the `users` collection. This is now created automatically on signup (email or Google).
+
+## Troubleshooting
+
+- If you see 400 errors from YouTube API, check your `.env` keys and restart the dev server.
+- If you see Firestore errors about missing user docs, make sure onboarding is up to date and your Firestore rules allow user doc creation.

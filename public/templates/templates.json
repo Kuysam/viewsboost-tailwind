@@ -1,0 +1,144 @@
+[
+  {
+    "title": "Vlog Style",
+    "category": "YouTube Video",
+    "desc": "Classic vlog with intro/outro, subscribe CTA.",
+    "icon": "🎬",
+    "preview": "https://images.unsplash.com/photo-1506744038136-46273834b3fb"
+  },
+  {
+    "title": "Gaming Stream",
+    "category": "YouTube Video",
+    "desc": "Stream overlay, facecam, chat highlight.",
+    "icon": "🕹️",
+    "preview": "https://images.unsplash.com/photo-1464983953574-0892a716854b"
+  },
+  {
+    "title": "How-to/Educational",
+    "category": "YouTube Video",
+    "desc": "Step-by-step, split screen, captions.",
+    "icon": "🎓",
+    "preview": "https://images.unsplash.com/photo-1513258496099-48168024aec0"
+  },
+  {
+    "title": "Podcast/Interview",
+    "category": "YouTube Video",
+    "desc": "Side-by-side guest layout, waveform.",
+    "icon": "🎤",
+    "preview": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4"
+  },
+  {
+    "title": "Trending Shorts",
+    "category": "YouTube Video",
+    "desc": "Super fast, bold subtitles, jump cuts.",
+    "icon": "🌟",
+    "preview": "https://images.unsplash.com/photo-1519125323398-675f0ddb6308"
+  },
+  {
+    "title": "Reaction",
+    "category": "YouTube Video",
+    "desc": "Big webcam, meme overlays, viral moments.",
+    "icon": "⚡",
+    "preview": "https://images.unsplash.com/photo-1521737852567-6949f3f9f2b5"
+  },
+  {
+    "title": "Animated Logo",
+    "category": "YouTube Intro",
+    "desc": "Logo reveal with motion.",
+    "icon": "⚡",
+    "preview": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97"
+  },
+  {
+    "title": "Text Swipe",
+    "category": "YouTube Intro",
+    "desc": "Animated text, swipe intro.",
+    "icon": "💫",
+    "preview": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d"
+  },
+  {
+    "title": "Multi-Video Layout",
+    "category": "Customize Video",
+    "desc": "Combine videos, transitions, overlays.",
+    "icon": "🎞️",
+    "preview": "https://images.unsplash.com/photo-1482062364825-616fd23b8fc1"
+  },
+  {
+    "title": "Brand Kit",
+    "category": "Customize Video",
+    "desc": "Upload your logo, brand colors.",
+    "icon": "💡",
+    "preview": "https://images.unsplash.com/photo-1465101046530-73398c7f28ca"
+  },
+  {
+    "title": "Cinematic",
+    "category": "Video Landscape",
+    "desc": "Widescreen 16:9, cinematic overlays.",
+    "icon": "🖥️",
+    "preview": "https://images.unsplash.com/photo-1465101178521-c1a9136a87e0"
+  },
+  {
+    "title": "Photo Highlight",
+    "category": "Video Landscape",
+    "desc": "Photo/video grid landscape.",
+    "icon": "🌄",
+    "preview": "https://images.unsplash.com/photo-1469474968028-56623f02e42e"
+  },
+  {
+    "title": "Ultra HD Clean",
+    "category": "Video Full HD (4K/8K)",
+    "desc": "Super crisp, minimal design.",
+    "icon": "🌌",
+    "preview": "https://images.unsplash.com/photo-1501594907352-04cda38ebc29"
+  },
+  {
+    "title": "Animated Overlay",
+    "category": "Video Full HD (4K/8K)",
+    "desc": "Sparkle/highlight for UHD.",
+    "icon": "✨",
+    "preview": "https://images.unsplash.com/photo-1465101046530-73398c7f28ca"
+  },
+  {
+    "title": "Tweet Reaction",
+    "category": "Twitter Video",
+    "desc": "Bold border, tweet overlay.",
+    "icon": "🐦",
+    "preview": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d"
+  },
+  {
+    "title": "Branded Template",
+    "category": "ViewsBoost Video",
+    "desc": "Official ViewsBoost look.",
+    "icon": "🚀",
+    "preview": "https://images.unsplash.com/photo-1519125323398-675f0ddb6308"
+  },
+  {
+    "title": "Clickbait",
+    "category": "YouTube Thumbnail",
+    "desc": "Bright colors, big text.",
+    "icon": "🖼️",
+    "preview": "https://images.unsplash.com/photo-1470770841072-f978cf4d019e"
+  },
+  {
+    "title": "Minimal",
+    "category": "YouTube Thumbnail",
+    "desc": "Clean, modern, focused.",
+    "icon": "🔥",
+    "preview": "https://images.unsplash.com/photo-1482062364825-616fd23b8fc1"
+  },
+  {
+    "title": "Preview",
+    "category": "ViewsBoost Thumbnail",
+    "desc": "Brand color, logo overlay.",
+    "icon": "🟦",
+    "preview": "https://images.unsplash.com/photo-1513258496099-48168024aec0"
+  },
+  {
+    "title": "Side by Side",
+    "category": "Multi-screen (Customizable)",
+    "desc": "Multiple screens, split view.",
+    "icon": "🖥️",
+    "preview": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97"
+  }
+]
+
+

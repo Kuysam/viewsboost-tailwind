@@ -29,11 +29,15 @@ export default function UserAvatarDropdown() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const snap = await getDoc(doc(db, 'viewers', user.uid));
+      if (!user) return;
+      // Try users, then creators, then viewers
+      let snap = await getDoc(doc(db, 'users', user.uid));
+      if (!snap.exists()) snap = await getDoc(doc(db, 'creators', user.uid));
+      if (!snap.exists()) snap = await getDoc(doc(db, 'viewers', user.uid));
       if (snap.exists()) {
         const data = snap.data();
         setProfile({
-          displayName: data.firstName + ' ' + data.lastName,
+          displayName: data.displayName || data.firstName + ' ' + data.lastName || 'User',
           photoURL: data.photoURL || '/images/avatar-placeholder.png',
         });
       }

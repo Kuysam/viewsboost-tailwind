@@ -1,11 +1,12 @@
 // src/lib/youtube.ts
+
 import axios from 'axios';
 import { handleAPIError, APIError, ErrorMessages } from './errorHandling';
 import { rateLimiters, withRateLimit } from './rateLimiter';
 import { withRetry } from './retryLogic';
 import { logger } from './logger';
 
-// Load all available API keys
+// --------- API KEYS & BASE URL ---------
 const API_KEYS = [
   import.meta.env?.VITE_YT_API_KEY_1 || process.env.VITE_YT_API_KEY_1,
   import.meta.env?.VITE_YT_API_KEY_2 || process.env.VITE_YT_API_KEY_2,
@@ -13,11 +14,9 @@ const API_KEYS = [
   import.meta.env?.VITE_YT_API_KEY_4 || process.env.VITE_YT_API_KEY_4,
 ].filter(Boolean);
 
-// ✅ Export this constant so other files can import it
 export const BASE_URL = import.meta.env?.VITE_YOUTUBE_API_BASE_URL || process.env.VITE_YOUTUBE_API_BASE_URL;
 
 let currentKeyIndex = 0;
-
 export function getNextApiKey() {
   const key = API_KEYS[currentKeyIndex];
   currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
@@ -28,8 +27,7 @@ if (!API_KEYS.length || !BASE_URL) {
   console.error('❌ Missing YouTube API Keys or BASE_URL.');
 }
 
-// -----------------------------------------------
-// Channel Details
+// --------- CHANNEL DETAILS ---------
 export async function getChannelDetails(channelId: string) {
   logger.info(`Fetching channel details for ${channelId}`);
   return withRetry(async () =>
@@ -54,8 +52,7 @@ export async function getChannelDetails(channelId: string) {
   );
 }
 
-// -----------------------------------------------
-// Playlist ID
+// --------- PLAYLIST ID ---------
 export async function getUploadsPlaylistId(channelId: string): Promise<string> {
   logger.info(`Fetching uploads playlist ID for ${channelId}`);
   return withRetry(async () =>
@@ -75,8 +72,54 @@ export async function getUploadsPlaylistId(channelId: string): Promise<string> {
   );
 }
 
-// -----------------------------------------------
-// Playlist Videos
+// --------- PAGINATED PLAYLIST VIDEOS (ALL PAGES) ---------
+export async function fetchAllPlaylistVideos(playlistId: string): Promise<any[]> {
+  let videos: any[] = [];
+  let nextPageToken = '';
+  do {
+    const params = new URLSearchParams({
+      part: 'snippet,contentDetails',
+      playlistId,
+      maxResults: '50',
+      key: getNextApiKey(),
+    });
+    if (nextPageToken) params.set('pageToken', nextPageToken);
+    const res = await fetch(`${BASE_URL}/playlistItems?${params.toString()}`);
+    if (!res.ok) throw new APIError('Failed to fetch playlist videos', res.status);
+    const data = await res.json();
+    videos = videos.concat(data.items || []);
+    nextPageToken = data.nextPageToken || '';
+  } while (nextPageToken);
+  return videos;
+}
+
+// --------- ALL CHANNEL VIDEOS (with TWO types ONLY: video or short) ---------
+export async function getAllChannelVideos(uploadsPlaylistId: string) {
+  const playlistVideos = await fetchAllPlaylistVideos(uploadsPlaylistId);
+  const videoIds = playlistVideos.map(v => v.snippet.resourceId.videoId);
+
+  // Fetch durations for all videos
+  const durations = await getVideoDurations(videoIds);
+
+  // Only two types: 'video' (>4min) or 'short' (≤4min)
+  function getVideoType(duration: number): 'short' | 'video' {
+    return duration > 240 ? 'video' : 'short';
+  }
+
+  return playlistVideos.map((item: any) => {
+    const id = item.snippet.resourceId.videoId;
+    const duration = durations[id] ?? 0;
+    return {
+      id,
+      title: item.snippet.title,
+      thumbnail: item.snippet.thumbnails.medium.url,
+      duration,
+      type: getVideoType(duration),
+    };
+  });
+}
+
+// --------- SINGLE-PAGE PLAYLIST VIDEOS (LEGACY) ---------
 export async function getPlaylistVideos(playlistId: string, pageToken = '') {
   logger.info(`Fetching videos for playlist ${playlistId}`, { pageToken });
   return withRetry(async () =>
@@ -104,8 +147,35 @@ export async function getPlaylistVideos(playlistId: string, pageToken = '') {
   );
 }
 
-// -----------------------------------------------
-// Comments
+// --------- VIDEO DURATIONS ---------
+function parseISODuration(duration: string): number {
+  const regex = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
+  const matches = duration.match(regex);
+  const hours = parseInt(matches?.[1] || '0', 10);
+  const minutes = parseInt(matches?.[2] || '0', 10);
+  const seconds = parseInt(matches?.[3] || '0', 10);
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+export async function getVideoDurations(videoIds: string[]): Promise<Record<string, number>> {
+  const durations: Record<string, number> = {};
+  const chunks = [];
+  for (let i = 0; i < videoIds.length; i += 50) {
+    chunks.push(videoIds.slice(i, i + 50));
+  }
+  for (const chunk of chunks) {
+    const res = await fetch(
+      `${BASE_URL}/videos?part=contentDetails&id=${chunk.join(',')}&key=${getNextApiKey()}`
+    );
+    const json = await res.json();
+    for (const item of json.items || []) {
+      durations[item.id] = parseISODuration(item.contentDetails.duration);
+    }
+  }
+  return durations;
+}
+
+// --------- COMMENTS ---------
 interface Comment {
   id: string;
   author: string;
@@ -140,8 +210,7 @@ export const getVideoComments = async (videoId: string): Promise<Comment[]> => {
   );
 };
 
-// -----------------------------------------------
-// Post Comment
+// --------- POST COMMENT ---------
 export const postComment = async (
   videoId: string,
   commentText: string,
@@ -179,36 +248,5 @@ export const postComment = async (
   );
 };
 
-// -----------------------------------------------
-// Video Durations
-function parseISODuration(duration: string): number {
-  const regex = /PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)S)?/;
-  const matches = duration.match(regex);
-  const hours = parseInt(matches?.[1] || '0', 10);
-  const minutes = parseInt(matches?.[2] || '0', 10);
-  const seconds = parseInt(matches?.[3] || '0', 10);
-  return hours * 3600 + minutes * 60 + seconds;
-}
-
-export async function getVideoDurations(videoIds: string[]): Promise<Record<string, number>> {
-  const durations: Record<string, number> = {};
-  const chunks = [];
-  for (let i = 0; i < videoIds.length; i += 50) {
-    chunks.push(videoIds.slice(i, i + 50));
-  }
-
-  for (const chunk of chunks) {
-    const res = await fetch(
-      `${BASE_URL}/videos?part=contentDetails&id=${chunk.join(',')}&key=${getNextApiKey()}`
-    );
-    const json = await res.json();
-    for (const item of json.items || []) {
-      durations[item.id] = parseISODuration(item.contentDetails.duration);
-    }
-  }
-
-  return durations;
-}
+// --------- UTIL EXPORTS ---------
 export { rateLimiters, withRateLimit, withRetry };
-
-

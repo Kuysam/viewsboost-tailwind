@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import YouTube from 'react-youtube';
 import { Video } from '../lib/services/videoService';
+import { useNavigate } from 'react-router-dom';
 
 interface Props {
   videos?: Video[];
@@ -9,6 +10,7 @@ interface Props {
 export default function DailyPicks({ videos = [] }: Props) {
   const [hoveredVideoId, setHoveredVideoId] = useState<string | null>(null);
   const hoverTimeoutRef = useRef<number>();
+  const navigate = useNavigate();
 
   const handleMouseEnter = (videoId: string) => {
     hoverTimeoutRef.current = window.setTimeout(() => {
@@ -21,6 +23,11 @@ export default function DailyPicks({ videos = [] }: Props) {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
     }
+  };
+
+  const handleVideoClick = (videoId: string) => {
+    console.log(`Clicked Daily Pick video: ${videoId}`);
+    navigate(`/video/${videoId}`);
   };
 
   useEffect(() => {
@@ -46,14 +53,17 @@ export default function DailyPicks({ videos = [] }: Props) {
     },
   };
 
+  // Filter out shorts (videos under 4 minutes)
+  const filteredVideos = videos.filter(video => video.type !== 'short');
+
   return (
     <section className="mb-8">
       <h2 className="text-xl font-bold text-yellow-400 mb-4">Daily Picks</h2>
       <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
-        {videos.length === 0 && (
+        {filteredVideos.length === 0 && (
           <div className="text-gray-400">No daily picks available.</div>
         )}
-        {videos.map((video) => (
+        {filteredVideos.map((video) => (
           <div
             key={video.id}
             className="w-64 h-36 rounded-lg shadow-lg flex-shrink-0 relative overflow-hidden"
@@ -75,6 +85,10 @@ export default function DailyPicks({ videos = [] }: Props) {
                 className="w-full h-full object-cover"
               />
             )}
+            <div
+              className="absolute inset-0 z-30 cursor-pointer"
+              onClick={() => handleVideoClick(video.id)}
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent">
               <div className="absolute bottom-0 left-0 right-0 p-3">
                 <h3 className="text-white text-sm font-medium line-clamp-2">{video.title}</h3>

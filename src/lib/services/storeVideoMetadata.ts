@@ -19,11 +19,7 @@ function parseISODuration(iso: string): number {
  */
 function getVideoType(details: any): 'short' | 'live' | 'video' {
   const durationSec = parseISODuration(details.contentDetails?.duration || '');
-  const isShort =
-    durationSec < 60 &&
-    (details.snippet?.title?.toLowerCase().includes('short') ||
-      (details.snippet?.thumbnails?.maxres?.height >
-        details.snippet?.thumbnails?.maxres?.width));
+  const isShort = durationSec <= 240; // 4 minutes = 240 seconds
   if (isShort) return 'short';
   if (
     details.snippet?.liveBroadcastContent === 'live' ||

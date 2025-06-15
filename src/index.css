@@ -23,3 +23,15 @@ body {
   color: var(--text-primary);
   transition: background-color 0.3s ease;
 }
+
+/* ----- Studio Background Fixes ----- */
+body.studio-bg, html.studio-bg, #root.studio-bg {
+  background: none !important;
+  overflow: hidden !important;
+  min-height: 100vh !important;
+  height: 100vh !important;
+  width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
