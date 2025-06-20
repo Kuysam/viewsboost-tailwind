@@ -1,6 +1,6 @@
 // src/App.tsx
 
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import BaseLayout from './components/BaseLayout';
 import LandingPage from './components/LandingPage';
@@ -10,24 +10,38 @@ import TermsOfService from './pages/TermsOfService';
 import GetStarted from './pages/GetStarted';
 import SignIn from './pages/SignIn';
 import Dashboard from './pages/Dashboard';
-import VideoWatchPage from './pages/VideoWatchPage';
-import WatchHistoryPage from './pages/WatchHistoryPage';
-import SearchHistoryPage from './pages/SearchHistoryPage';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// New: Shorts and Live (modern, animated, Gen Z style)
-import Shorts from './pages/Shorts';
-import Live from './pages/Live';
-import LiveStream from './pages/live/[id]';
-import StudioLive from './pages/studio/Live';
-import StudioRoom from './pages/studio/Room';
+// Lazy load heavy components for better code splitting
+const VideoWatchPage = React.lazy(() => import('./pages/VideoWatchPage'));
+const WatchHistoryPage = React.lazy(() => import('./pages/WatchHistoryPage'));
+const SearchHistoryPage = React.lazy(() => import('./pages/SearchHistoryPage'));
 
-// --- Studio MVP Page (NEW) ---
-import Studio from './pages/Studio'; // <-- Add this line
-import TemplateImporter from "./pages/TemplateImporter";
-// Admin panel route (hidden, secure)
-import AdminPanel from './pages/AdminPanel';
+// Lazy load media-heavy components
+const Shorts = React.lazy(() => import('./pages/Shorts'));
+const Live = React.lazy(() => import('./pages/Live'));
+const LiveStream = React.lazy(() => import('./pages/live/[id]'));
+
+// Lazy load studio components (large and specialized)
+const Studio = React.lazy(() => import('./pages/Studio'));
+const StudioLive = React.lazy(() => import('./pages/studio/Live'));
+const StudioRoom = React.lazy(() => import('./pages/studio/Room'));
+const TemplateImporter = React.lazy(() => import('./pages/TemplateImporter'));
+const CategoryTemplates = React.lazy(() => import('./pages/CategoryTemplates'));
+
+// Lazy load admin panel (rarely accessed, very large)
+const AdminPanel = React.lazy(() => import('./pages/AdminPanel'));
+
+// Loading component for suspense fallback
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col items-center space-y-4">
+      <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <p className="text-gray-600 dark:text-gray-400 text-sm">Loading...</p>
+    </div>
+  </div>
+);
 
 // --- Secret keyboard shortcut hook ---
 function useSecretAdminShortcut() {
@@ -49,115 +63,131 @@ export default function App() {
 
   return (
     <BaseLayout>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/disclaimer" element={<Disclaimer />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="/terms-of-service" element={<TermsOfService />} />
-        <Route path="/get-started" element={<GetStarted />} />
-        <Route path="/sign-in" element={<SignIn />} />
-        <Route path="/auth" element={<SignIn />} /> {/* Alias for /auth */}
-        <Route path="/import-templates" element={<TemplateImporter />} />
-        {/* Video Watch Page */}
-        <Route
-          path="/video/:videoId"
-          element={
-            <ProtectedRoute>
-              <VideoWatchPage />
-            </ProtectedRoute>
-          }
-        />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Public Routes - Keep these eagerly loaded for fast initial load */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/disclaimer" element={<Disclaimer />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/get-started" element={<GetStarted />} />
+          <Route path="/sign-in" element={<SignIn />} />
+          <Route path="/auth" element={<SignIn />} /> {/* Alias for /auth */}
+          
+          {/* Template Importer - Lazy loaded (large component) */}
+          <Route path="/import-templates" element={<TemplateImporter />} />
+          <Route path="/template-importer" element={<TemplateImporter />} />
+          
+          {/* Video Watch Page - Lazy loaded */}
+          <Route
+            path="/video/:videoId"
+            element={
+              <ProtectedRoute>
+                <VideoWatchPage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Dashboard/Home */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/home" element={<Navigate to="/dashboard" replace />} />
+          {/* Dashboard/Home - Keep eagerly loaded for authenticated users */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/home" element={<Navigate to="/dashboard" replace />} />
 
-        {/* History */}
-        <Route
-          path="/history/watch"
-          element={
-            <ProtectedRoute>
-              <WatchHistoryPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/history/search"
-          element={
-            <ProtectedRoute>
-              <SearchHistoryPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* History - Lazy loaded */}
+          <Route
+            path="/history/watch"
+            element={
+              <ProtectedRoute>
+                <WatchHistoryPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/history/search"
+            element={
+              <ProtectedRoute>
+                <SearchHistoryPage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Shorts: Pro Gen-Z, TikTok-style page */}
-        <Route
-          path="/shorts"
-          element={
-            <ProtectedRoute>
-              <Shorts />
-            </ProtectedRoute>
-          }
-        />
+          {/* Shorts: Pro Gen-Z, TikTok-style page - Lazy loaded */}
+          <Route
+            path="/shorts"
+            element={
+              <ProtectedRoute>
+                <Shorts />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Live: multi-user and YouTube live */}
-        <Route
-          path="/live"
-          element={
-            <ProtectedRoute>
-              <Live />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/live/:id"
-          element={
-            <ProtectedRoute>
-              <LiveStream />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/studio/live"
-          element={
-            <ProtectedRoute>
-              <StudioLive />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/studio/room"
-          element={
-            <ProtectedRoute>
-              <StudioRoom />
-            </ProtectedRoute>
-          }
-        />
+          {/* Live: multi-user and YouTube live - Lazy loaded */}
+          <Route
+            path="/live"
+            element={
+              <ProtectedRoute>
+                <Live />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/live/:id"
+            element={
+              <ProtectedRoute>
+                <LiveStream />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/studio/live"
+            element={
+              <ProtectedRoute>
+                <StudioLive />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/studio/room"
+            element={
+              <ProtectedRoute>
+                <StudioRoom />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* ---- Studio MVP Route ---- */}
-        <Route
-          path="/studio"
-          element={
-            <ProtectedRoute>
-              <Studio />
-            </ProtectedRoute>
-          }
-        />
+          {/* ---- Studio MVP Route - Lazy loaded ---- */}
+          <Route
+            path="/studio"
+            element={
+              <ProtectedRoute>
+                <Studio />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* --- Hidden Admin Panel (Ctrl+Shift+A) --- */}
-        <Route path="/admin-panel-237abc" element={<AdminPanel />} />
+          {/* Category Templates Route - Lazy loaded */}
+          <Route
+            path="/category/:category"
+            element={
+              <ProtectedRoute>
+                <CategoryTemplates />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* 404 fallback */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          {/* --- Hidden Admin Panel (Ctrl+Shift+A) - Lazy loaded --- */}
+          <Route path="/admin-panel-237abc" element={<AdminPanel />} />
+
+          {/* 404 fallback */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </BaseLayout>
   );
 }

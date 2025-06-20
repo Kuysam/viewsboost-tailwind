@@ -3,7 +3,11 @@ import { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase"; // Adjust this path if your firebase config is elsewhere
 
-export function useTemplates(category = "Business") {
+// --- Developer Note ---
+// There is NO fetch limit here. All matching templates are fetched from Firestore.
+// If you want to paginate or limit, add a Firestore 'limit' query.
+
+export function useTemplates(category: string | null = "Business") {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -13,9 +17,13 @@ export function useTemplates(category = "Business") {
       setLoading(true);
       try {
         const snapshot = await getDocs(collection(db, "templates"));
-        let data = snapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter(doc => doc.category === category);
+        let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // If category is null, return all templates; otherwise filter by category
+        if (category !== null) {
+          data = data.filter(doc => doc.category === category);
+        }
+        
         if (!ignore) setTemplates(data);
       } catch (err) {
         if (!ignore) setTemplates([]); // fallback

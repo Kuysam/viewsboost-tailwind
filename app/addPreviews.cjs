@@ -1,3 +1,5 @@
+// app/scripts/addPreviews.cjs
+
 const fs = require('fs');
 const axios = require('axios');
 
@@ -6,6 +8,13 @@ const UNSPLASH_ACCESS_KEY = '4QSBhU22JAECLL-wphJBiwDGiuEn9H6LdC7AA2_YRZ0'; // <-
 const INPUT_FILE = 'app/templates.json';            // <-- Updated path
 const OUTPUT_FILE = 'app/templates_with_previews.json';  // <-- Updated path
 const QUERY_BY = 'title'; // or 'category'
+
+// --- Developer Note ---
+// BATCH_END controls how many templates are processed per run.
+// Unsplash free tier allows 50 requests per hour. Set BATCH_END = 50 for max batch.
+// Adjust BATCH_START/BATCH_END as needed to process your full template set in multiple runs.
+const BATCH_START = 0;        // Set start index, e.g. 0
+const BATCH_END = 50;         // Set end index, e.g. 50 (max 50/hr on demo key)
 
 // ---- FUNCTIONS ----
 
@@ -26,35 +35,48 @@ async function getUnsplashImage(query) {
       response.data.results &&
       response.data.results.length > 0
     ) {
-      // Use the regular image URL, or 'small' for smaller file
       return response.data.results[0].urls.small;
     }
     return null;
   } catch (error) {
-    console.error('Unsplash error for', query, ':', error.response ? error.response.data : error.message);
+    // Add better error reporting
+    console.error(`Unsplash error for "${query}":`, error.response?.data || error.message);
     return null;
   }
 }
 
 async function main() {
   const templates = JSON.parse(fs.readFileSync(INPUT_FILE, 'utf-8'));
-  for (let i = 0; i < templates.length; i++) {
+  let found = 0, notFound = 0;
+
+  for (let i = BATCH_START; i < Math.min(BATCH_END, templates.length); i++) {
     const tpl = templates[i];
     const keyword = tpl[QUERY_BY] || tpl.title || tpl.category;
+
+    // Skip if preview already exists (to resume safely)
+    if (tpl.preview && tpl.preview.startsWith('http')) {
+      console.log(`Skipping "${keyword}": already has preview.`);
+      continue;
+    }
+
     process.stdout.write(`Searching for "${keyword}"... `);
     const imageUrl = await getUnsplashImage(keyword);
     if (imageUrl) {
       tpl.preview = imageUrl;
+      found++;
       console.log('✅ Found');
     } else {
       tpl.preview = '';
+      notFound++;
       console.log('❌ Not found');
     }
     // Optional: throttle to respect API rate limit (50 req/hour for demo keys)
     await new Promise(res => setTimeout(res, 1100));
   }
+
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(templates, null, 2));
   console.log(`Done! Output written to ${OUTPUT_FILE}`);
+  console.log(`Total: ${found} found, ${notFound} not found, skipped: ${templates.length - (BATCH_END - BATCH_START)}`);
 }
 
 main();

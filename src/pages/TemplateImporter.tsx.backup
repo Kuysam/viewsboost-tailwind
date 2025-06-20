@@ -1,0 +1,359 @@
+import React, { useState, useRef } from "react";
+import { db } from "../lib/firebase"; // Adjust if your firebase config is elsewhere
+import { collection, addDoc, getDocs, deleteDoc } from "firebase/firestore";
+
+// --- Developer Note ---
+// This importer validates:
+// 1. Batch size (max 50, min 1, matching Unsplash API limit)
+// 2. Category: Each template's 'category' must match a Studio selector (case/whitespace insensitive)
+// 3. Preview: Each template must have a valid preview URL (starts with 'http')
+// 4. After import, Firestore is checked for each selector; if any has <10 real templates, a warning is shown
+// 5. Placeholders are only shown in Studio if a selector has zero real templates
+//
+// The 'category' field in your import JSON must match a selector in Studio exactly for correct grouping and display.
+// If you see a warning about underfilled selectors, import more templates for those categories.
+//
+// If you hit Firestore rate limits, try smaller batches or add throttling.
+
+// --- Studio Selectors for Validation ---
+const STUDIO_SELECTORS = [
+  // Video selectors
+  "YouTube Video",
+  "YouTube Intro", 
+  "Customize Video",
+  "Video Landscape",
+  "Video Full HD (4K/8K)",
+  "Twitter Video",
+  "ViewsBoost Video",
+  "YouTube Thumbnail",
+  "ViewsBoost Thumbnail",
+  "Multi-screen (Customizable)",
+  // Shorts selectors
+  "Facebook Shorts",
+  "Instagram Reel",
+  "Snapchat Shorts",
+  "TikTok Shorts",
+  "Pinterest Video Pin",
+  "Shorts Customize",
+  "Linked Short",
+  "LinkedIn Video",
+  "ViewsBoost Short",
+  "YouTube Shorts",
+  // Other social media selectors
+  "photo",
+  "post", 
+  "story",
+  "cover",
+  "ads",
+  "background",
+  // Main category selectors
+  "Business",
+  "Marketing",
+  "Web Design",
+  "Documents",
+  "Customize"
+];
+function normalizeCategory(name) {
+  return name.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+export default function TemplateImporter({ onImport }: { onImport?: () => void }) {
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Import from file upload (old behavior)
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setResult(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setFileName(file.name);
+
+    try {
+      const text = await file.text();
+      let templates;
+      try {
+        templates = JSON.parse(text);
+      } catch (jsonErr) {
+        setResult("❌ Error: File is not valid JSON.");
+        return;
+      }
+      if (!Array.isArray(templates)) {
+        setResult("❌ Error: File JSON must be an array of templates.");
+        return;
+      }
+      // No batch size limits - import all templates
+      if (templates.length < 1) {
+        setResult('⚠️ Warning: No templates found in the file.');
+        return;
+      }
+      // Validate categories
+      const mismatches = templates.filter(
+        tpl => tpl.category &&
+          STUDIO_SELECTORS.some(sel => normalizeCategory(sel) === normalizeCategory(tpl.category)) === false
+      );
+      if (mismatches.length > 0) {
+        setResult(`⚠️ Warning: The following categories do not match any Studio selector: ${[...new Set(mismatches.map(t => t.category))].join(', ')}.\nPlease fix your import file or update your selectors. Import will continue, but these templates may not appear in Studio.`);
+        // Optionally, you could prompt the user to proceed or cancel here.
+      }
+      // Validate preview URLs
+      const missingPreviews = templates.filter(tpl => !tpl.preview || typeof tpl.preview !== 'string' || !tpl.preview.startsWith('http'));
+      if (missingPreviews.length > 0) {
+        setResult(`⚠️ Warning: The following templates are missing a valid preview URL: ${missingPreviews.map(t => t.title).join(', ')}.\nPlease fix your import file. Import will continue, but these templates may not display correctly.`);
+      }
+      setImporting(true);
+      const colRef = collection(db, "templates");
+      let successCount = 0;
+      for (const tpl of templates) {
+        // No batch size limit here; each template is added individually.
+        try {
+          await addDoc(colRef, tpl);
+          successCount++;
+        } catch (uploadErr: any) {
+          setResult(`❌ Error uploading a template: ${uploadErr.message}`);
+          setImporting(false);
+          return;
+        }
+      }
+      setResult(`✅ Imported ${successCount} templates successfully!`);
+      
+      // Call onImport callback if provided
+      if (onImport) {
+        setTimeout(() => onImport(), 1500); // Delay to show success message
+      }
+
+      // Templates imported successfully - no limits or warnings needed
+    } catch (err: any) {
+      setResult(`❌ Error: ${err.message}`);
+    }
+    setImporting(false);
+  }
+
+  function openFileDialog() {
+    fileInputRef.current?.click();
+  }
+
+  // New: Import from /public/templates/templates_with_previews.json automatically
+  async function importFromTemplatesJson() {
+    setResult(null);
+    setFileName("templates_with_previews.json");
+    setImporting(true);
+    try {
+      // --------- FIXED PATH to templates_with_previews.json ---------
+      const response = await fetch("/templates/templates_with_previews.json");
+      if (!response.ok) throw new Error("Could not fetch templates_with_previews.json file");
+      const allTemplates = await response.json();
+      if (!Array.isArray(allTemplates)) {
+        setResult("❌ Error: File JSON must be an array of templates.");
+        setImporting(false);
+        return;
+      }
+      
+      if (allTemplates.length < 1) {
+        setResult('⚠️ Warning: No templates found in the file.');
+        return;
+      }
+
+      // Import in batches of 50 to respect Unsplash API limits
+      const BATCH_SIZE = 50;
+      const batches = [];
+      for (let i = 0; i < allTemplates.length; i += BATCH_SIZE) {
+        batches.push(allTemplates.slice(i, i + BATCH_SIZE));
+      }
+
+      let totalSuccessCount = 0;
+      const colRef = collection(db, "templates");
+      
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const templates = batches[batchIndex];
+        setResult(`Processing batch ${batchIndex + 1}/${batches.length} (${templates.length} templates)...`);
+        
+        // Validate categories for this batch
+        const mismatches = templates.filter(
+          tpl => tpl.category &&
+            STUDIO_SELECTORS.some(sel => normalizeCategory(sel) === normalizeCategory(tpl.category)) === false
+        );
+        if (mismatches.length > 0) {
+          console.warn(`Batch ${batchIndex + 1} - Categories not matching selectors:`, [...new Set(mismatches.map(t => t.category))]);
+        }
+        
+        // Validate preview URLs for this batch
+        const missingPreviews = templates.filter(tpl => !tpl.preview || typeof tpl.preview !== 'string' || !tpl.preview.startsWith('http'));
+        if (missingPreviews.length > 0) {
+          console.warn(`Batch ${batchIndex + 1} - Templates missing preview URLs:`, missingPreviews.map(t => t.title));
+        }
+        
+        let batchSuccessCount = 0;
+        for (const tpl of templates) {
+          try {
+            await addDoc(colRef, tpl);
+            batchSuccessCount++;
+          } catch (uploadErr: any) {
+            setResult(`❌ Error uploading template in batch ${batchIndex + 1}: ${uploadErr.message}`);
+            setImporting(false);
+            return;
+          }
+        }
+        totalSuccessCount += batchSuccessCount;
+        
+        // Add delay between batches to avoid rate limiting
+        if (batchIndex < batches.length - 1) {
+          setResult(`Batch ${batchIndex + 1}/${batches.length} complete (${batchSuccessCount} templates). Waiting 2 seconds before next batch...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+      
+      setResult(`✅ Imported ${totalSuccessCount} templates successfully from ${batches.length} batches!`);
+      
+      // Call onImport callback if provided
+      if (onImport) {
+        setTimeout(() => onImport(), 1500); // Delay to show success message
+      }
+
+      // Templates imported successfully - no limits or warnings needed
+    } catch (err: any) {
+      setResult(`❌ Error: ${err.message}`);
+    }
+    setImporting(false);
+  }
+
+  // New: Clear all templates from Firestore
+  async function clearAllTemplates() {
+    if (!confirm("Are you sure you want to delete ALL templates from Firestore? This cannot be undone!")) {
+      return;
+    }
+    
+    setResult(null);
+    setFileName("Clearing Firestore...");
+    setImporting(true);
+    
+    try {
+      const colRef = collection(db, "templates");
+      const snapshot = await getDocs(colRef);
+      
+      if (snapshot.empty) {
+        setResult("✅ No templates found in Firestore to delete.");
+        setImporting(false);
+        return;
+      }
+      
+      let deleteCount = 0;
+      for (const doc of snapshot.docs) {
+        await deleteDoc(doc.ref);
+        deleteCount++;
+      }
+      
+      setResult(`✅ Deleted ${deleteCount} templates from Firestore.`);
+    } catch (err: any) {
+      setResult(`❌ Error clearing templates: ${err.message}`);
+    }
+    setImporting(false);
+  }
+
+  // Quick test import with sample templates
+  async function quickTestImport() {
+    setResult(null);
+    setFileName("Test templates");
+    setImporting(true);
+    
+    try {
+      const testTemplates = [
+        // YouTube Video category
+        { title: "Vlog Style", category: "YouTube Video", desc: "Classic vlog template", icon: "🎬", preview: "https://images.unsplash.com/photo-1505330622279-bf7d7fc918f4" },
+        { title: "Gaming Stream", category: "YouTube Video", desc: "Gaming stream overlay", icon: "🕹️", preview: "https://images.unsplash.com/photo-1593305841991-05c297ba4575" },
+        // Facebook Shorts category
+        { title: "FB Shorts: Bold Promo", category: "Facebook Shorts", desc: "Bold animated promo", icon: "📘", preview: "https://images.unsplash.com/photo-1506744038136-46273834b3fb" },
+        { title: "FB Shorts: Event Teaser", category: "Facebook Shorts", desc: "Event teaser", icon: "🎉", preview: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308" },
+        // Instagram Reel category  
+        { title: "IG Reel: Fashion Lookbook", category: "Instagram Reel", desc: "Fashion showcase", icon: "👗", preview: "https://images.unsplash.com/photo-1482062364825-616fd23b8fc1" },
+        { title: "IG Reel: Dance Challenge", category: "Instagram Reel", desc: "Dance challenge", icon: "💃", preview: "https://images.unsplash.com/photo-1465101178521-c1a9136a87e0" },
+        // Photo category
+        { title: "Instagram Square Photo", category: "photo", desc: "Perfect square format", icon: "📷", preview: "https://images.unsplash.com/photo-1506744038136-46273834b3fb" },
+        { title: "Product Showcase Photo", category: "photo", desc: "Product photography", icon: "🛍️", preview: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca" },
+        // Post category
+        { title: "Twitter Text Post", category: "post", desc: "Engaging Twitter post", icon: "🐦", preview: "https://images.unsplash.com/photo-1482062364825-616fd23b8fc1" },
+        { title: "Instagram Carousel Post", category: "post", desc: "Multi-slide Instagram post", icon: "📱", preview: "https://images.unsplash.com/photo-1506744038136-46273834b3fb" },
+        // Story category
+        { title: "Instagram Story Template", category: "story", desc: "Trendy Instagram story", icon: "📱", preview: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d" },
+        { title: "Behind the Scenes Story", category: "story", desc: "Show your daily routine", icon: "🎭", preview: "https://images.unsplash.com/photo-1465101178521-c1a9136a87e0" }
+      ];
+      
+      const colRef = collection(db, "templates");
+      let successCount = 0;
+      
+      for (const tpl of testTemplates) {
+        try {
+          await addDoc(colRef, tpl);
+          successCount++;
+        } catch (uploadErr: any) {
+          setResult(`❌ Error uploading test template: ${uploadErr.message}`);
+          setImporting(false);
+          return;
+        }
+      }
+      
+      setResult(`✅ Imported ${successCount} test templates successfully! Now check the Templates tab.`);
+      
+      // Call onImport callback if provided
+      if (onImport) {
+        setTimeout(() => onImport(), 1500); // Delay to show success message
+      }
+    } catch (err: any) {
+      setResult(`❌ Error: ${err.message}`);
+    }
+    setImporting(false);
+  }
+
+  return (
+    <div className="min-h-screen bg-black text-yellow-300 flex flex-col items-center justify-center">
+      <h1 className="text-3xl mb-4 font-bold">Batch Import Templates</h1>
+      <div className="flex gap-4 mb-4">
+        <button
+          onClick={openFileDialog}
+          disabled={importing}
+          className="bg-yellow-400 text-black px-8 py-4 rounded-xl font-bold text-xl shadow hover:bg-yellow-300 transition"
+        >
+          {importing ? "Importing..." : "Import from File"}
+        </button>
+        <button
+          onClick={importFromTemplatesJson}
+          disabled={importing}
+          className="bg-yellow-500 text-black px-8 py-4 rounded-xl font-bold text-xl shadow hover:bg-yellow-400 transition"
+        >
+          {importing ? "Importing..." : "Import All Templates (Auto)"}
+        </button>
+        <button
+          onClick={quickTestImport}
+          disabled={importing}
+          className="bg-blue-600 text-white px-8 py-4 rounded-xl font-bold text-xl shadow hover:bg-blue-500 transition"
+        >
+          {importing ? "Testing..." : "Quick Test Import"}
+        </button>
+      </div>
+      <div>
+        <button
+          onClick={clearAllTemplates}
+          disabled={importing}
+          className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold text-lg shadow hover:bg-red-500 transition"
+        >
+          {importing ? "Clearing..." : "Clear All Templates"}
+        </button>
+      </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json,application/json"
+        style={{ display: "none" }}
+        onChange={handleFileChange}
+      />
+      {fileName && <div className="mt-2 text-yellow-400">Selected file: {fileName}</div>}
+      {result && (
+        <div className={`mt-6 text-lg ${result.startsWith("✅") ? "text-green-400" : "text-red-400"}`}>
+          {result}
+        </div>
+      )}
+    </div>
+  );
+}

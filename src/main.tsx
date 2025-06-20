@@ -8,6 +8,7 @@ import App from './App';
 import './index.css';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ThemeProvider } from './contexts/ThemeContext'; // ✅ Added
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -44,12 +45,19 @@ if (import.meta.env.DEV) {
 // ✅ Wrap App in both ThemeProvider and LanguageProvider
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ThemeProvider>
-      <LanguageProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </LanguageProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <LanguageProvider>
+          <BrowserRouter
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true
+            }}
+          >
+            <App />
+          </BrowserRouter>
+        </LanguageProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

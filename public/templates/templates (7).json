@@ -1,0 +1,442 @@
+[
+  {
+    "title": "Instagram Business Story",
+    "style": "Minimal",
+    "category": "Story",
+    "desc": "Modern, vertical Instagram story template.",
+    "fileType": "image",
+    "platform": "Canva",
+    "preview": "https://static.canva.com/preview1.jpg",
+    "sourceUrl": "https://www.canva.com/templates/instagram-story/"
+  },
+  {
+    "title": "YouTube Channel Art",
+    "style": "Bold",
+    "category": "Channel Art",
+    "desc": "Vivid, engaging channel banner.",
+    "fileType": "image",
+    "platform": "Canva",
+    "preview": "https://static.canva.com/preview2.jpg",
+    "sourceUrl": "https://www.canva.com/templates/youtube-channel-art/"
+  },
+  {
+    "title": "YouTube Channel Art",
+    "style": "Bold",
+    "category": "Channel Art",
+    "desc": "Vivid, engaging channel banner.",
+    "fileType": "image",
+    "platform": "Adobe Express",
+    "preview": "https://express.adobe.com/preview1.jpg",
+    "sourceUrl": "https://express.adobe.com/templates/youtube-channel-art/"
+  },
+  {
+    "title": "Instagram Story Template",
+    "style": "Modern",
+    "category": "Story",
+    "desc": "Trendy Instagram story template.",
+    "fileType": "image",
+    "platform": "Adobe Express",
+    "preview": "https://express.adobe.com/preview2.jpg",
+    "sourceUrl": "https://express.adobe.com/templates/instagram-story/"
+  },
+  {
+    "title": "Business Card",
+    "style": "Modern",
+    "category": "Business",
+    "desc": "Professional business card template.",
+    "fileType": "image",
+    "platform": "VistaCreate",
+    "preview": "https://create.vista.com/preview1.jpg",
+    "sourceUrl": "https://create.vista.com/templates/business-card/"
+  },
+  {
+    "title": "Instagram Post",
+    "style": "Minimal",
+    "category": "Social Media",
+    "desc": "Clean Instagram post template.",
+    "fileType": "image",
+    "platform": "VistaCreate",
+    "preview": "https://create.vista.com/preview2.jpg",
+    "sourceUrl": "https://create.vista.com/templates/instagram-post/"
+  },
+  {
+    "title": "Photo Collage",
+    "style": "Creative",
+    "category": "Collage",
+    "desc": "Fun photo collage template.",
+    "fileType": "image",
+    "platform": "Fotor",
+    "preview": "https://www.fotor.com/preview1.jpg",
+    "sourceUrl": "https://www.fotor.com/templates/photo-collage/"
+  },
+  {
+    "title": "Poster",
+    "style": "Bold",
+    "category": "Poster",
+    "desc": "Eye-catching poster template.",
+    "fileType": "image",
+    "platform": "Fotor",
+    "preview": "https://www.fotor.com/preview2.jpg",
+    "sourceUrl": "https://www.fotor.com/templates/poster/"
+  },
+  {
+    "title": "Facebook Ad",
+    "style": "Vibrant",
+    "category": "Ad",
+    "desc": "Bright Facebook ad template.",
+    "fileType": "image",
+    "platform": "Snappa",
+    "preview": "https://snappa.com/preview1.jpg",
+    "sourceUrl": "https://snappa.com/templates/facebook-ad/"
+  },
+  {
+    "title": "Twitter Header",
+    "style": "Minimal",
+    "category": "Header",
+    "desc": "Simple Twitter header template.",
+    "fileType": "image",
+    "platform": "Snappa",
+    "preview": "https://snappa.com/preview2.jpg",
+    "sourceUrl": "https://snappa.com/templates/twitter-header/"
+  },
+  {
+    "title": "Flyer",
+    "style": "Modern",
+    "category": "Flyer",
+    "desc": "Trendy flyer template.",
+    "fileType": "image",
+    "platform": "Pixlr",
+    "preview": "https://pixlr.com/preview1.jpg",
+    "sourceUrl": "https://pixlr.com/templates/flyer/"
+  },
+  {
+    "title": "Instagram Story",
+    "style": "Bold",
+    "category": "Story",
+    "desc": "Bold Instagram story template.",
+    "fileType": "image",
+    "platform": "Pixlr",
+    "preview": "https://pixlr.com/preview2.jpg",
+    "sourceUrl": "https://pixlr.com/templates/instagram-story/"
+  },
+  {
+    "title": "Infographic",
+    "style": "Flat",
+    "category": "Infographic",
+    "desc": "Flat style infographic template.",
+    "fileType": "image",
+    "platform": "Visme",
+    "preview": "https://www.visme.co/preview1.jpg",
+    "sourceUrl": "https://www.visme.co/templates/infographic/"
+  },
+  {
+    "title": "Presentation",
+    "style": "Professional",
+    "category": "Presentation",
+    "desc": "Professional presentation template.",
+    "fileType": "image",
+    "platform": "Visme",
+    "preview": "https://www.visme.co/preview2.jpg",
+    "sourceUrl": "https://www.visme.co/templates/presentation/"
+  },
+  {
+    "title": "Flyer",
+    "style": "Modern",
+    "category": "Flyer",
+    "desc": "Modern flyer template.",
+    "fileType": "image",
+    "platform": "Design Wizard",
+    "preview": "https://www.designwizard.com/preview1.jpg",
+    "sourceUrl": "https://www.designwizard.com/template-library/flyer/"
+  },
+  {
+    "title": "Poster",
+    "style": "Bold",
+    "category": "Poster",
+    "desc": "Bold poster template.",
+    "fileType": "image",
+    "platform": "Design Wizard",
+    "preview": "https://www.designwizard.com/preview2.jpg",
+    "sourceUrl": "https://www.designwizard.com/template-library/poster/"
+  },
+  {
+    "title": "Event Poster",
+    "style": "Colorful",
+    "category": "Poster",
+    "desc": "Colorful event poster template.",
+    "fileType": "image",
+    "platform": "PosterMyWall",
+    "preview": "https://www.postermywall.com/preview1.jpg",
+    "sourceUrl": "https://www.postermywall.com/g/templates/event-poster/"
+  },
+  {
+    "title": "Menu",
+    "style": "Elegant",
+    "category": "Menu",
+    "desc": "Elegant menu template.",
+    "fileType": "image",
+    "platform": "PosterMyWall",
+    "preview": "https://www.postermywall.com/preview2.jpg",
+    "sourceUrl": "https://www.postermywall.com/g/templates/menu/"
+  },
+  {
+    "title": "Quote Graphic",
+    "style": "Minimal",
+    "category": "Social Media",
+    "desc": "Minimal quote graphic template.",
+    "fileType": "image",
+    "platform": "Stencil",
+    "preview": "https://getstencil.com/preview1.jpg",
+    "sourceUrl": "https://getstencil.com/templates/quote-graphic/"
+  },
+  {
+    "title": "Pinterest Pin",
+    "style": "Bright",
+    "category": "Pin",
+    "desc": "Bright Pinterest pin template.",
+    "fileType": "image",
+    "platform": "Stencil",
+    "preview": "https://getstencil.com/preview2.jpg",
+    "sourceUrl": "https://getstencil.com/templates/pinterest-pin/"
+  },
+  {
+    "title": "Education Presentation",
+    "style": "Colorful",
+    "category": "Education",
+    "desc": "Colorful education presentation template.",
+    "fileType": "presentation",
+    "platform": "Slidesgo",
+    "preview": "https://slidesgo.com/preview1.jpg",
+    "sourceUrl": "https://slidesgo.com/templates/education/"
+  },
+  {
+    "title": "Business Pitch",
+    "style": "Modern",
+    "category": "Business",
+    "desc": "Modern business pitch template.",
+    "fileType": "presentation",
+    "platform": "Slidesgo",
+    "preview": "https://slidesgo.com/preview2.jpg",
+    "sourceUrl": "https://slidesgo.com/templates/business/"
+  },
+  {
+    "title": "Creative Presentation",
+    "style": "Creative",
+    "category": "Creative",
+    "desc": "Creative style presentation template.",
+    "fileType": "presentation",
+    "platform": "SlidesCarnival",
+    "preview": "https://www.slidescarnival.com/preview1.jpg",
+    "sourceUrl": "https://www.slidescarnival.com/templates/creative/"
+  },
+  {
+    "title": "Minimal Pitch Deck",
+    "style": "Minimal",
+    "category": "Business",
+    "desc": "Minimal pitch deck template.",
+    "fileType": "presentation",
+    "platform": "SlidesCarnival",
+    "preview": "https://www.slidescarnival.com/preview2.jpg",
+    "sourceUrl": "https://www.slidescarnival.com/templates/minimal/"
+  },
+  {
+    "title": "Modern Presentation",
+    "style": "Modern",
+    "category": "Presentation",
+    "desc": "Modern presentation template.",
+    "fileType": "presentation",
+    "platform": "Envato Elements",
+    "preview": "https://elements.envato.com/preview1.jpg",
+    "sourceUrl": "https://elements.envato.com/presentation-templates/"
+  },
+  {
+    "title": "Portfolio Template",
+    "style": "Clean",
+    "category": "Portfolio",
+    "desc": "Clean portfolio template.",
+    "fileType": "presentation",
+    "platform": "Envato Elements",
+    "preview": "https://elements.envato.com/preview2.jpg",
+    "sourceUrl": "https://elements.envato.com/portfolio-templates/"
+  },
+  {
+    "title": "Marketing Deck",
+    "style": "Professional",
+    "category": "Marketing",
+    "desc": "Professional marketing deck template.",
+    "fileType": "presentation",
+    "platform": "SlideModel",
+    "preview": "https://slidemodel.com/preview1.jpg",
+    "sourceUrl": "https://slidemodel.com/templates/marketing/"
+  },
+  {
+    "title": "Timeline Slide",
+    "style": "Flat",
+    "category": "Timeline",
+    "desc": "Flat style timeline slide template.",
+    "fileType": "presentation",
+    "platform": "SlideModel",
+    "preview": "https://slidemodel.com/preview2.jpg",
+    "sourceUrl": "https://slidemodel.com/templates/timeline/"
+  },
+  {
+    "title": "Pitch Deck",
+    "style": "Modern",
+    "category": "Business",
+    "desc": "Modern pitch deck template.",
+    "fileType": "presentation",
+    "platform": "GraphicRiver",
+    "preview": "https://graphicriver.net/preview1.jpg",
+    "sourceUrl": "https://graphicriver.net/category/graphics/presentation-templates/"
+  },
+  {
+    "title": "Annual Report",
+    "style": "Professional",
+    "category": "Report",
+    "desc": "Professional annual report template.",
+    "fileType": "presentation",
+    "platform": "GraphicRiver",
+    "preview": "https://graphicriver.net/preview2.jpg",
+    "sourceUrl": "https://graphicriver.net/category/graphics/presentation-templates/"
+  },
+  {
+    "title": "Promo Video",
+    "style": "Dynamic",
+    "category": "Promo",
+    "desc": "Dynamic promo video template.",
+    "fileType": "video",
+    "platform": "FlexClip",
+    "preview": "https://www.flexclip.com/preview1.jpg",
+    "sourceUrl": "https://www.flexclip.com/templates/promo/"
+  },
+  {
+    "title": "Slideshow",
+    "style": "Elegant",
+    "category": "Slideshow",
+    "desc": "Elegant slideshow video template.",
+    "fileType": "video",
+    "platform": "FlexClip",
+    "preview": "https://www.flexclip.com/preview2.jpg",
+    "sourceUrl": "https://www.flexclip.com/templates/slideshow/"
+  },
+  {
+    "title": "Birthday Video",
+    "style": "Fun",
+    "category": "Birthday",
+    "desc": "Fun birthday video template.",
+    "fileType": "video",
+    "platform": "Animoto",
+    "preview": "https://animoto.com/preview1.jpg",
+    "sourceUrl": "https://animoto.com/templates/birthday/"
+  },
+  {
+    "title": "Business Promo",
+    "style": "Modern",
+    "category": "Promo",
+    "desc": "Modern business promo video template.",
+    "fileType": "video",
+    "platform": "Animoto",
+    "preview": "https://animoto.com/preview2.jpg",
+    "sourceUrl": "https://animoto.com/templates/business-promo/"
+  },
+  {
+    "title": "Meme Video",
+    "style": "Funny",
+    "category": "Meme",
+    "desc": "Funny meme video template.",
+    "fileType": "video",
+    "platform": "Kapwing",
+    "preview": "https://www.kapwing.com/preview1.jpg",
+    "sourceUrl": "https://www.kapwing.com/templates/meme/"
+  },
+  {
+    "title": "Instagram Reel",
+    "style": "Trendy",
+    "category": "Reel",
+    "desc": "Trendy Instagram reel template.",
+    "fileType": "video",
+    "platform": "Kapwing",
+    "preview": "https://www.kapwing.com/preview2.jpg",
+    "sourceUrl": "https://www.kapwing.com/templates/instagram-reel/"
+  },
+  {
+    "title": "Resume Template",
+    "style": "Professional",
+    "category": "Resume",
+    "desc": "Professional resume template.",
+    "fileType": "image",
+    "platform": "Freepik",
+    "preview": "https://www.freepik.com/preview1.jpg",
+    "sourceUrl": "https://www.freepik.com/templates/resume/"
+  },
+  {
+    "title": "Business Card",
+    "style": "Minimal",
+    "category": "Business",
+    "desc": "Minimal business card template.",
+    "fileType": "image",
+    "platform": "Freepik",
+    "preview": "https://www.freepik.com/preview2.jpg",
+    "sourceUrl": "https://www.freepik.com/templates/business-card/"
+  },
+  {
+    "title": "T-Shirt Mockup",
+    "style": "Casual",
+    "category": "Mockup",
+    "desc": "Casual t-shirt mockup template.",
+    "fileType": "image",
+    "platform": "Placeit",
+    "preview": "https://placeit.net/preview1.jpg",
+    "sourceUrl": "https://placeit.net/c/templates/t-shirt/"
+  },
+  {
+    "title": "Logo Animation",
+    "style": "Dynamic",
+    "category": "Animation",
+    "desc": "Dynamic logo animation template.",
+    "fileType": "video",
+    "platform": "Placeit",
+    "preview": "https://placeit.net/preview2.jpg",
+    "sourceUrl": "https://placeit.net/c/templates/logo-animation/"
+  },
+  {
+    "title": "Portfolio Showcase",
+    "style": "Trendy",
+    "category": "Portfolio",
+    "desc": "Trendy portfolio showcase template.",
+    "fileType": "image",
+    "platform": "Dribbble",
+    "preview": "https://dribbble.com/preview1.jpg",
+    "sourceUrl": "https://dribbble.com/search/templates/"
+  },
+  {
+    "title": "Case Study",
+    "style": "Minimal",
+    "category": "Case Study",
+    "desc": "Minimal case study template.",
+    "fileType": "image",
+    "platform": "Dribbble",
+    "preview": "https://dribbble.com/preview2.jpg",
+    "sourceUrl": "https://dribbble.com/search/templates/"
+  },
+  {
+    "title": "Branding Case Study",
+    "style": "Professional",
+    "category": "Branding",
+    "desc": "Professional branding case study template.",
+    "fileType": "image",
+    "platform": "Behance",
+    "preview": "https://www.behance.net/preview1.jpg",
+    "sourceUrl": "https://www.behance.net/search?search=template"
+  },
+  {
+    "title": "Portfolio Presentation",
+    "style": "Modern",
+    "category": "Portfolio",
+    "desc": "Modern portfolio presentation template.",
+    "fileType": "image",
+    "platform": "Behance",
+    "preview": "https://www.behance.net/preview2.jpg",
+    "sourceUrl": "https://www.behance.net/search?search=template"
+  }
+]
