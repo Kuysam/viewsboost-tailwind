@@ -1,83 +1,108 @@
-// src/lib/youtube/quotaManager.ts
+// src/lib/quotaManager.ts
 
-import { db } from '../firebase';
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  onSnapshot, 
-  query, 
-  orderBy, 
-  limit, 
-  Timestamp, 
-  serverTimestamp 
-} from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from './firebase';
 
-export interface QuotaData {
-  timestamp: Timestamp;
-  quotaUsed: number;
-  quotaRemaining: number;
-  totalQuota: number;
-  lastUpdated: Timestamp;
-  updatedBy: string;
+interface QuotaUsage {
+  [key: string]: {
+    used: number;
+    errors: number;
+    lastReset: any;
+  };
 }
 
-const QUOTA_COLLECTION = 'quotaUsage';
-const TOTAL_QUOTA = 10000; // Update this to your true daily quota!
+class QuotaManager {
+  private dailyQuota = 10000; // YouTube API daily quota
+  private quotaUsage: QuotaUsage = {};
 
-export const quotaManager = {
-  // Subscribe to last 24 quota usage updates
-  subscribeToQuotaUpdates: (callback: (data: QuotaData[]) => void) => {
-    const quotaRef = collection(db, QUOTA_COLLECTION);
-    const quotaQuery = query(
-      quotaRef,
-      orderBy('timestamp', 'desc'),
-      limit(24)
-    );
-
-    return onSnapshot(
-      quotaQuery,
-      (snapshot) => {
-        const quotaData: QuotaData[] = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data() as QuotaData;
-          quotaData.push(data);
-        });
-        callback(quotaData.reverse());
-      },
-      (error) => {
-        console.error('Error fetching quota data:', error);
-      }
-    );
-  },
-
-  // Log new quota usage event
-  logQuotaUsage: async (used: number, adminEmail: string) => {
+  async initializeQuota(): Promise<void> {
+    const today = new Date().toISOString().slice(0, 10);
+    const quotaRef = doc(db, 'quotaUsage', today);
+    
     try {
-      const now = Timestamp.now();
-      const docId = now.toMillis().toString();
+      const quotaDoc = await getDoc(quotaRef);
+      
+      if (quotaDoc.exists()) {
+        this.quotaUsage = quotaDoc.data().keys || {};
+      } else {
+        // Initialize quota for the day
+        await setDoc(quotaRef, {
+          date: today,
+          keys: {},
+          createdAt: serverTimestamp()
+        });
+      }
+    } catch (error) {
+      console.error('Error initializing quota:', error);
+    }
+  }
 
-      const quotaData: QuotaData = {
-        timestamp: now,
-        quotaUsed: used,
-        quotaRemaining: TOTAL_QUOTA - used,
-        totalQuota: TOTAL_QUOTA,
-        lastUpdated: now,
-        updatedBy: adminEmail
+  async recordUsage(apiKey: string, requestCost: number = 1): Promise<void> {
+    if (!this.quotaUsage[apiKey]) {
+      this.quotaUsage[apiKey] = {
+        used: 0,
+        errors: 0,
+        lastReset: serverTimestamp()
       };
+    }
 
-      await setDoc(doc(db, QUOTA_COLLECTION, docId), {
-        ...quotaData,
-        lastUpdated: serverTimestamp(),
+    this.quotaUsage[apiKey].used += requestCost;
+    
+    // Update Firestore
+    const today = new Date().toISOString().slice(0, 10);
+    const quotaRef = doc(db, 'quotaUsage', today);
+    
+    try {
+      await updateDoc(quotaRef, {
+        [`keys.${apiKey}`]: this.quotaUsage[apiKey]
       });
-
-      return quotaData;
     } catch (error) {
       console.error('Error logging quota usage:', error);
-      throw error;
     }
-  },
+  }
 
-  getTotalQuota: () => TOTAL_QUOTA,
-  calculateRemaining: (used: number) => TOTAL_QUOTA - used
-};
+  async recordError(apiKey: string): Promise<void> {
+    if (!this.quotaUsage[apiKey]) {
+      this.quotaUsage[apiKey] = {
+        used: 0,
+        errors: 0,
+        lastReset: serverTimestamp()
+      };
+    }
+
+    this.quotaUsage[apiKey].errors += 1;
+    
+    // Update Firestore
+    const today = new Date().toISOString().slice(0, 10);
+    const quotaRef = doc(db, 'quotaUsage', today);
+    
+    try {
+      await updateDoc(quotaRef, {
+        [`keys.${apiKey}.errors`]: this.quotaUsage[apiKey].errors
+      });
+    } catch (error) {
+      console.error('Error logging quota error:', error);
+    }
+  }
+
+  getUsage(apiKey: string): { used: number; remaining: number; errors: number } {
+    const usage = this.quotaUsage[apiKey] || { used: 0, errors: 0 };
+    
+    return {
+      used: usage.used,
+      remaining: this.dailyQuota - usage.used,
+      errors: usage.errors
+    };
+  }
+
+  canMakeRequest(apiKey: string, requestCost: number = 1): boolean {
+    const usage = this.getUsage(apiKey);
+    return usage.remaining >= requestCost;
+  }
+
+  getAllUsage(): QuotaUsage {
+    return { ...this.quotaUsage };
+  }
+}
+
+export const quotaManager = new QuotaManager();

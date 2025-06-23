@@ -2,7 +2,6 @@ import { db } from '../firebase';
 import { 
   collection, 
   query, 
-  where, 
   orderBy, 
   limit, 
   getDocs,
@@ -94,7 +93,7 @@ export const platformHealthService = {
   },
 
   // Get recent error logs with fallback
-  getRecentErrors: async (limitCount: number = 50) => {
+  getRecentErrors: async (limitCount: number = 50): Promise<ErrorLog[]> => {
     try {
       const logsRef = collection(db, 'errorLogs');
       const q = query(
@@ -104,17 +103,25 @@ export const platformHealthService = {
       );
 
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as ErrorLog[];
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          timestamp: data.timestamp || Timestamp.now(),
+          error: data.error || 'Unknown error',
+          stackTrace: data.stackTrace || '',
+          userId: data.userId,
+          path: data.path || '',
+          browserInfo: data.browserInfo || ''
+        } as ErrorLog;
+      });
     } catch (error) {
       return [];
     }
   },
 
   // Get feature usage statistics with fallback
-  getFeatureUsageStats: async () => {
+  getFeatureUsageStats: async (): Promise<FeatureUsage[]> => {
     try {
       const featureRef = collection(db, 'featureUsage');
       const q = query(
@@ -123,10 +130,16 @@ export const platformHealthService = {
       );
 
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as FeatureUsage[];
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          featureId: data.featureId || doc.id,
+          name: data.name || 'Unknown Feature',
+          usageCount: data.usageCount || 0,
+          lastUsed: data.lastUsed || Timestamp.now()
+        } as FeatureUsage;
+      });
     } catch (error) {
       return [];
     }

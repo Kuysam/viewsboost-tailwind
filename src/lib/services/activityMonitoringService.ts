@@ -78,7 +78,7 @@ export const activityMonitoringService = {
     });
 
     // Update user engagement metrics
-    await this.updateEngagementMetrics(userId, action);
+    await activityMonitoringService.updateEngagementMetrics(userId, action);
   },
 
   // Update engagement metrics
@@ -134,7 +134,7 @@ export const activityMonitoringService = {
 
     // Create notification for critical errors
     if (severity === 'critical') {
-      await this.createErrorNotification(errorRef.id, errorMessage, source);
+      await activityMonitoringService.createErrorNotification(errorRef.id, errorMessage, source);
     }
   },
 

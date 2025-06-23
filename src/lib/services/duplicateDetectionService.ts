@@ -2,7 +2,7 @@
 // Provides intelligent duplicate detection using multiple strategies
 
 import { db } from '../firebase';
-import { collection, getDocs, doc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, doc, writeBatch } from 'firebase/firestore';
 
 interface Template {
   id?: string;

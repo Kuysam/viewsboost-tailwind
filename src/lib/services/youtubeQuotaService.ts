@@ -4,6 +4,7 @@ import {
   doc, 
   setDoc, 
   getDoc, 
+  getDocs,
   query, 
   where, 
   orderBy, 
@@ -61,7 +62,7 @@ export const youtubeQuotaService = {
 
     // Check if we should trigger an alert
     if (newQuotaUsed / DAILY_QUOTA_LIMIT >= ALERT_THRESHOLD) {
-      await this.createQuotaAlert(apiKey, newQuotaUsed, newQuotaRemaining);
+      await youtubeQuotaService.createQuotaAlert(apiKey, newQuotaUsed, newQuotaRemaining);
     }
   },
 

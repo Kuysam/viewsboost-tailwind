@@ -15,13 +15,6 @@ interface ExternalTemplate {
   sourceUrl?: string;
 }
 
-interface ApiConfig {
-  baseUrl: string;
-  apiKey?: string;
-  headers: Record<string, string>;
-  rateLimit: number; // requests per minute
-}
-
 // API Configurations
 const API_CONFIGS = {
   pexels: {
@@ -431,7 +424,8 @@ class ExternalApiService {
 
     for (const template of templatesToImport) {
       try {
-        // Convert external template to ViewsBoost template format
+        // Convert external template to ViewsBoost template format (commented out until Firestore save is implemented)
+        /*
         const viewsBoostTemplate = {
           title: template.title,
           category: template.category,
@@ -449,6 +443,7 @@ class ExternalApiService {
           importedFrom: 'external_api',
           externalId: template.id
         };
+        */
 
         // Here you would save to Firestore
         // await addDoc(collection(db, "templates"), viewsBoostTemplate);

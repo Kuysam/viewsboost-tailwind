@@ -85,7 +85,7 @@ export const rateLimitConfig = {
 
 // CORS configuration
 export const corsConfig = {
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+  origin: import.meta.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
@@ -178,4 +178,40 @@ export function validateFileUpload(
     // Additional security checks can be added here
     resolve(true);
   });
-} 
+}
+
+// Security and CORS configuration for ViewsBoost
+
+export interface SecurityConfig {
+  corsOptions: {
+    origin: string[];
+    credentials: boolean;
+    methods: string[];
+    allowedHeaders: string[];
+  };
+  rateLimiting: {
+    windowMs: number;
+    max: number;
+  };
+  apiKeyValidation: {
+    required: boolean;
+    header: string;
+  };
+}
+
+export const securityConfig: SecurityConfig = {
+  corsOptions: {
+    origin: import.meta.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:5173'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  },
+  rateLimiting: {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100 // limit each IP to 100 requests per windowMs
+  },
+  apiKeyValidation: {
+    required: false, // Set to true in production
+    header: 'X-API-Key'
+  }
+}; 

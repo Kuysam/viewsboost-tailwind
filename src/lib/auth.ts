@@ -7,7 +7,7 @@ import {
   signInWithPopup,
   User,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 
 const ADMIN_EMAIL = 'cham212003@gmail.com';

@@ -1,6 +1,6 @@
 // src/lib/services/videoService.ts
 
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { logger } from '../logger';
 import { getUploadsPlaylistId } from '../youtube-caching/getUploadsPlaylistId';
@@ -36,10 +36,17 @@ interface Creator {
 export async function getVideos(): Promise<Video[]> {
   try {
     const snap = await getDocs(collection(db, 'videos'));
-    return snap.docs.map((d) => ({
-      ...d.data(),
-      id: d.id
-    } as Video));
+    return snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        ...data,
+        id: d.id,
+        title: data.title || 'Unknown Title',
+        thumbnail: data.thumbnail || '',
+        duration: data.duration || 0,
+        type: data.type || 'video'
+      } as Video;
+    });
   } catch (err) {
     logger.error('Failed to fetch videos:', err);
     return [];
@@ -96,15 +103,22 @@ export async function updateVideo(id: string, updates: Partial<Video>): Promise<
   }
 }
 
-export async function getTrendingVideos(page: number = 1, limit: number = 20): Promise<Video[]> {
+export async function getTrendingVideos(): Promise<Video[]> {
   try {
     const snap = await getDocs(collection(db, 'videos'));
     return snap.docs.map((d) => {
-      const data = d.data() as Omit<Video, 'id'>;
-      return {
+      const data = d.data();
+      const video: Video = {
         id: d.id,
+        title: data.title || 'Unknown Title',
+        thumbnail: data.thumbnail || '',
+        duration: data.duration || 0,
+        type: data.type || 'video',
         ...data
       };
+      // Ensure required fields are set correctly
+      video.id = d.id;
+      return video;
     });
   } catch (err) {
     logger.error('Failed to fetch trending videos:', err);

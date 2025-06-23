@@ -76,8 +76,8 @@ class SystemMonitor {
 
   // Update metrics with current quota information
   async updateQuotaMetrics() {
-    this.metrics.quotaUsed = 10000 - quotaTracker.getQuotaRemaining();
-    this.metrics.quotaRemaining = quotaTracker.getQuotaRemaining();
+    this.metrics.quotaUsed = 10000 - quotaTracker.getRemaining();
+    this.metrics.quotaRemaining = quotaTracker.getRemaining();
     this.metrics.timestamp = new Date();
 
     // Log metrics

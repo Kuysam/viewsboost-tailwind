@@ -6,15 +6,15 @@ import { rateLimiters, withRateLimit } from './rateLimiter';
 import { withRetry } from './retryLogic';
 import { logger } from './logger';
 
-// --------- API KEYS & BASE URL ---------
+// Read API keys from environment variables
 const API_KEYS = [
-  import.meta.env?.VITE_YT_API_KEY_1 || process.env.VITE_YT_API_KEY_1,
-  import.meta.env?.VITE_YT_API_KEY_2 || process.env.VITE_YT_API_KEY_2,
-  import.meta.env?.VITE_YT_API_KEY_3 || process.env.VITE_YT_API_KEY_3,
-  import.meta.env?.VITE_YT_API_KEY_4 || process.env.VITE_YT_API_KEY_4,
+  import.meta.env.VITE_YT_API_KEY_1,
+  import.meta.env.VITE_YT_API_KEY_2,
+  import.meta.env.VITE_YT_API_KEY_3,
+  import.meta.env.VITE_YT_API_KEY_4,
 ].filter(Boolean);
 
-export const BASE_URL = import.meta.env?.VITE_YOUTUBE_API_BASE_URL || process.env.VITE_YOUTUBE_API_BASE_URL;
+export const BASE_URL = import.meta.env.VITE_YOUTUBE_API_BASE_URL || 'https://www.googleapis.com/youtube/v3';
 
 let currentKeyIndex = 0;
 export function getNextApiKey() {
