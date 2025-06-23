@@ -7,31 +7,49 @@ import { db } from "./firebase"; // Adjust this path if your firebase config is 
 // There is NO fetch limit here. All matching templates are fetched from Firestore.
 // If you want to paginate or limit, add a Firestore 'limit' query.
 
-export function useTemplates(category: string | null = "Business") {
-  const [templates, setTemplates] = useState([]);
+interface Template {
+  id: string;
+  title: string;
+  category: string;
+  description?: string;
+  preview?: string;
+  [key: string]: any;
+}
+
+export function useTemplates(category?: string) {
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
-    async function fetchTemplates() {
-      setLoading(true);
+    
+    const fetchTemplates = async () => {
       try {
-        const snapshot = await getDocs(collection(db, "templates"));
-        let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setLoading(true);
+        const snap = await getDocs(collection(db, 'templates'));
+        let data: Template[] = snap.docs.map(doc => ({
+          id: doc.id,
+          title: doc.data().title || '',
+          category: doc.data().category || '',
+          ...doc.data()
+        }));
         
-        // If category is null, return all templates; otherwise filter by category
-        if (category !== null) {
+        if (category) {
           data = data.filter(doc => doc.category === category);
         }
         
         if (!ignore) setTemplates(data);
       } catch (err) {
-        if (!ignore) setTemplates([]); // fallback
+        if (!ignore) setError(err instanceof Error ? err.message : 'Failed to fetch templates');
+      } finally {
+        if (!ignore) setLoading(false);
       }
-      if (!ignore) setLoading(false);
-    }
+    };
+
     fetchTemplates();
     return () => { ignore = true; };
   }, [category]);
-  return { templates, loading };
+
+  return { templates, loading, error };
 }

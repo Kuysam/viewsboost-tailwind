@@ -28,6 +28,10 @@ interface ImportQueue {
   batchSize: number;
 }
 
+interface TemplateImporterProps {
+  onImport?: () => void;
+}
+
 // Enhanced Platform detection utility - FIXED PRIORITY ORDER & COMPREHENSIVE COVERAGE
 const detectTemplatePlatform = (template: Template): string => {
   // 🚨 PRIORITY 1: Check explicit platform field FIRST (most reliable)
@@ -101,9 +105,8 @@ const detectTemplatePlatform = (template: Template): string => {
   return 'Unknown Source';
 };
 
-const TemplateImporter: React.FC = () => {
+const TemplateImporter: React.FC<TemplateImporterProps> = ({ onImport }) => {
   // Core state
-  const [templates, setTemplates] = useState<Template[]>([]);
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -462,8 +465,6 @@ const TemplateImporter: React.FC = () => {
         const newQueue = createImportQueue(unique, unique.length);
         await importTemplatesWithQueue(newQueue);
       }
-
-      setTemplates(unique);
 
     } catch (error) {
       console.error("Error processing file:", error);

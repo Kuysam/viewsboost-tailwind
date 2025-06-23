@@ -5,17 +5,29 @@ import { useTemplates } from "../lib/useTemplates";
 // @ts-ignore
 import TemplatePreviewModal from "../components/TemplatePreviewModal";
 
+interface Template {
+  id?: string;
+  title: string;
+  desc?: string;
+  description?: string;
+  category: string;
+  preview?: string;
+  imageUrl?: string;
+  [key: string]: any;
+}
+
 function CategoryTemplates() {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [previewTemplate, setPreviewTemplate] = useState(null);
+  const [templates, setTemplates] = useState<Template[]>([]);
 
   // Decode the category parameter (in case it has special characters)
   const decodedCategory = category ? decodeURIComponent(category) : "";
   
   // Fetch templates for this specific category
-  const { templates, loading } = useTemplates(decodedCategory);
+  const { loading } = useTemplates(decodedCategory);
 
   // Filter templates based on search query
   const filteredTemplates = templates.filter(template => 
@@ -90,7 +102,7 @@ function CategoryTemplates() {
     return "from-gray-400 to-gray-600";
   }
 
-  function TemplateCard({ template }: { template: any }) {
+  function TemplateCard({ template }: { template: Template }) {
     return (
       <div
         className="relative group rounded-2xl p-5 cursor-pointer transition-all overflow-hidden shadow-lg bg-gray-200 border border-transparent hover:border-yellow-400 hover:shadow-[0_4px_32px_0_rgba(255,214,10,0.15)]"

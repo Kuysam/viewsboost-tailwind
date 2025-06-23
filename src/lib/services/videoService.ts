@@ -1,21 +1,11 @@
 // src/lib/services/videoService.ts
 
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import {
-  doc,
-  getDoc,
-  collection,
-  getDocs,
-  setDoc,
-  query,
-  orderBy,
-  limit,
-  where,
-  Timestamp,
-} from 'firebase/firestore';
 import { logger } from '../logger';
+import { getUploadsPlaylistId } from '../youtube-caching/getUploadsPlaylistId';
+import { getAllChannelVideos } from '../youtube';
 import { handleAPIError } from '../errorHandling';
-import { getAllChannelVideos, getUploadsPlaylistId } from '../youtube';
 
 export interface Video {
   id: string;
@@ -23,58 +13,133 @@ export interface Video {
   thumbnail: string;
   duration: number;
   type: 'short' | 'video';
+  channelId?: string;
+  publishedAt?: string;
+  viewCount?: number;
+  description?: string;
+  tags?: string[];
+  createdAt?: any;
+  youtubeId?: string;
   creatorId?: string;
   lastSynced?: string;
+  [key: string]: any;
+}
+
+interface Creator {
+  id: string;
+  channelId: string;
+  name?: string;
+  [key: string]: any;
 }
 
 // Fetch all videos from Firestore (for UI/dashboard/feed)
 export async function getVideos(): Promise<Video[]> {
   try {
     const snap = await getDocs(collection(db, 'videos'));
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as Video));
+    return snap.docs.map((d) => ({
+      ...d.data(),
+      id: d.id
+    } as Video));
   } catch (err) {
-    logger.error('Error fetching videos:', err);
+    logger.error('Failed to fetch videos:', err);
     return [];
   }
 }
 
-export async function getTrendingVideos(days = 1, max = 10): Promise<Video[]> {
+export async function getVideosByType(type: 'short' | 'video'): Promise<Video[]> {
   try {
-    const since = new Date();
-    since.setDate(since.getDate() - days);
-    const qTrending = query(
-      collection(db, 'videos'),
-      where('lastViewed', '>=', Timestamp.fromDate(since)),
-      orderBy('lastViewed', 'desc'),
-      orderBy('views', 'desc'),
-      limit(max)
-    );
-    const snap = await getDocs(qTrending);
-    return snap.docs.map(d => ({ ...d.data(), id: d.id } as Video));
+    const allVideos = await getVideos();
+    return allVideos.filter(video => video.type === type);
   } catch (err) {
-    logger.error('Failed to get trending videos:', err);
+    logger.error(`Failed to fetch ${type}s:`, err);
     return [];
   }
 }
 
-export async function getVideoById(id: string): Promise<Video> {
+export async function getVideoById(id: string): Promise<Video | null> {
   try {
-    const docRef = doc(db, 'videos', id);
-    const snap = await getDoc(docRef);
+    const snap = await getDoc(doc(db, 'videos', id));
     if (snap.exists()) {
-      return { id, ...(snap.data() as Video) };
+      const data = snap.data() as Omit<Video, 'id'>;
+      return {
+        id: snap.id,
+        ...data
+      };
     }
-    logger.warn(`Video ${id} not found in Firestore.`);
+    logger.error(`Video ${id} not found in Firestore.`);
+    return null;
   } catch (err) {
-    logger.error(`Error fetching video ${id}:`, err);
+    logger.error(`Failed to fetch video ${id}:`, err);
+    return null;
   }
-  return {
-    id,
-    title: 'Unknown Title',
-    thumbnail: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
-    duration: 0,
-    type: 'video',
-  };
+}
+
+export async function saveVideo(video: Omit<Video, 'id'>): Promise<void> {
+  try {
+    await setDoc(doc(db, 'videos', video.youtubeId || ''), {
+      ...video,
+      lastSynced: new Date().toISOString()
+    });
+  } catch (err) {
+    logger.error('Failed to save video:', err);
+  }
+}
+
+export async function updateVideo(id: string, updates: Partial<Video>): Promise<void> {
+  try {
+    await updateDoc(doc(db, 'videos', id), {
+      ...updates,
+      lastSynced: new Date().toISOString()
+    });
+  } catch (err) {
+    logger.error(`Failed to update video ${id}:`, err);
+  }
+}
+
+export async function getTrendingVideos(page: number = 1, limit: number = 20): Promise<Video[]> {
+  try {
+    const snap = await getDocs(collection(db, 'videos'));
+    return snap.docs.map((d) => {
+      const data = d.data() as Omit<Video, 'id'>;
+      return {
+        id: d.id,
+        ...data
+      };
+    });
+  } catch (err) {
+    logger.error('Failed to fetch trending videos:', err);
+    return [];
+  }
+}
+
+export async function syncCreatorVideos(): Promise<void> {
+  try {
+    const creatorsSnap = await getDocs(collection(db, 'creators'));
+    const creators: Creator[] = creatorsSnap.docs.map(d => ({
+      id: d.id,
+      channelId: d.data().channelId || '',
+      ...d.data()
+    } as Creator));
+
+    for (const creator of creators) {
+      if (!creator.channelId) continue;
+      const uploadsPlaylistId = await getUploadsPlaylistId(creator.channelId);
+      const videos = await getAllChannelVideos(uploadsPlaylistId);
+      
+      for (const video of videos) {
+        const videoData: Omit<Video, 'id'> = {
+          ...video,
+          type: video.duration <= 240 ? 'short' : 'video',
+          creatorId: creator.id,
+          youtubeId: video.id,
+          lastSynced: new Date().toISOString()
+        };
+        await saveVideo(videoData);
+      }
+    }
+  } catch (error) {
+    logger.error('Failed to sync creator videos:', error);
+  }
 }
 
 export async function getContinueWatching(userId: string): Promise<Video[]> {

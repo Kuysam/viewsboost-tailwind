@@ -99,16 +99,7 @@ export default defineConfig({
       usePolling: true,           // Better file watching on all systems
       interval: 100,              // Check every 100ms
       ignored: ['**/node_modules/**', '**/.git/**']
-    },
-    // Auto-restart on these file changes
-    restart: [
-      '.env',
-      '.env.local', 
-      'vite.config.ts',
-      'tailwind.config.js',
-      'postcss.config.js',
-      'package.json'
-    ]
+    }
   },
   // Enable code splitting optimizations
   optimizeDeps: {
