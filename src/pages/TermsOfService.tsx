@@ -1,6 +1,6 @@
 
 // src/pages/TermsOfService.tsx
-import React from 'react';
+// TermsOfService page component
 import BaseLayout from '../components/BaseLayout';
 
 export default function TermsOfService() {

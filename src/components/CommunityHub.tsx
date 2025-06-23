@@ -1,4 +1,4 @@
-import React from 'react';
+// CommunityHub component
 
 export default function CommunityHub() {
   const posts = ['Poll: Favorite Genre?', 'Clip: Amazing Trick'];

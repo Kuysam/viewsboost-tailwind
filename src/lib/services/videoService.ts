@@ -62,7 +62,7 @@ export async function getVideoById(id: string): Promise<Video> {
     const docRef = doc(db, 'videos', id);
     const snap = await getDoc(docRef);
     if (snap.exists()) {
-      return { id, ...(snap.data() as Video) };
+      return { ...(snap.data() as Video), id };
     }
     logger.warn(`Video ${id} not found in Firestore.`);
   } catch (err) {
@@ -106,7 +106,7 @@ export async function getLiveVideos(): Promise<Video[]> {
     const colRef = collection(db, 'videos');
     const qLive = query(colRef, where('type', '==', 'live'));
     const snap = await getDocs(qLive);
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Video) }));
+    return snap.docs.map((d) => ({ ...(d.data() as Video), id: d.id }));
   } catch (err) {
     logger.error('Failed to fetch live videos:', err);
     return [];
@@ -120,7 +120,7 @@ export async function ingestAllCreatorsVideosToFirestore() {
     const creators = creatorsSnapshot.docs.map(d => ({
       id: d.id,
       ...d.data(),
-    }));
+    })) as Array<{ id: string; channelId?: string; [key: string]: any }>;
 
     for (const creator of creators) {
       if (!creator.channelId) continue;

@@ -1,5 +1,5 @@
 // src/pages/PrivacyPolicy.tsx
-import React from 'react';
+// PrivacyPolicy page component
 import BaseLayout from '../components/BaseLayout';
 
 export default function PrivacyPolicy() {

@@ -1,5 +1,5 @@
 // src/pages/Disclaimer.tsx
-import React from 'react';
+// Disclaimer page component
 import { useNavigate } from 'react-router-dom';
 
 export default function Disclaimer() {

@@ -1,5 +1,5 @@
 // src/pages/VideoWatchPage.tsx
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import YouTube from 'react-youtube';
 import type { YouTubeEvent, YouTubePlayer } from 'react-youtube';
@@ -287,7 +287,7 @@ export default function VideoWatchPage() {
         <h2 className="text-xl font-semibold mb-4">Related Videos</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {related.map((v) => (
-            <RelatedVideoCard key={v.id} video={v} />
+            <RelatedVideoCard key={v.id} video={{...v, type: 'video' as const}} />
           ))}
         </div>
       </div>

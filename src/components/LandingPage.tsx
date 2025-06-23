@@ -1,11 +1,11 @@
 // src/components/LandingPage.tsx
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
+  const [dark] = useState(() => localStorage.getItem('theme') === 'dark');
 
 
   useEffect(() => {

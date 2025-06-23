@@ -54,7 +54,7 @@ export function listenShortLikes(
   return onSnapshot(doc(db, 'videoLikes', videoId), (docSnap) => {
     const user = auth.currentUser;
     const data = docSnap.exists() ? docSnap.data() : {};
-    cb(Object.keys(data).length, !!data[user?.uid]);
+    cb(Object.keys(data).length, !!(user?.uid && data[user.uid]));
   });
 }
 

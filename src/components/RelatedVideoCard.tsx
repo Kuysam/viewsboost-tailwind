@@ -1,5 +1,5 @@
 // src/components/RelatedVideoCard.tsx
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Video } from '../lib/services/videoService';
 import { useNavigate } from 'react-router-dom';
 import YouTube from 'react-youtube';

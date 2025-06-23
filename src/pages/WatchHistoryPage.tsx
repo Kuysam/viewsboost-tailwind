@@ -1,6 +1,6 @@
 // src/pages/WatchHistoryPage.tsx
 
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../lib/firebase';
 import { getDoc, doc } from 'firebase/firestore';
@@ -79,6 +79,7 @@ export default function WatchHistoryPage() {
                       item.snippet.thumbnails.high?.url ||
                       `https://img.youtube.com/vi/${e.videoId}/hqdefault.jpg`,
                     duration: parseISODuration(item.contentDetails.duration),
+                    type: 'video' as const,
                   };
                 }
               } catch (err) {

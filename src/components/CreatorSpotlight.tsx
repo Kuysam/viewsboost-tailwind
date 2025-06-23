@@ -1,4 +1,4 @@
-import React from 'react';
+// CreatorSpotlight component
 
 export default function CreatorSpotlight() {
   const creators = ['Creator A', 'Creator B', 'Creator C'];

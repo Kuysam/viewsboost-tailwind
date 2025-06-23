@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getVideos, Video } from '../lib/services/videoService';
 import { auth, db } from '../lib/firebase';
-import { doc, collection, getDocs, query, where, orderBy } from 'firebase/firestore';
-import { CircleDot, Users, MessageSquare, Heart, Share2, Mic, Video as VideoIcon } from 'lucide-react';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { CircleDot, Users, MessageSquare, Heart, Share2, Video as VideoIcon } from 'lucide-react';
 import YouTube from 'react-youtube';
 
 interface LiveStream extends Video {
@@ -27,7 +27,7 @@ export default function Live() {
         // Get YouTube live streams
         const data = await getVideos();
         const youtubeStreams = data
-          .filter(v => v.type === 'live')
+          .filter(v => v.duration >= 300) // Consider videos longer than 5 minutes as potential live content
           .map(v => ({
             ...v,
             viewers: Math.floor(Math.random() * 1000) + 100,
@@ -41,22 +41,37 @@ export default function Live() {
         const localStreamsRef = collection(db, 'localStreams');
         const localStreamsSnap = await getDocs(query(localStreamsRef, where('isLive', '==', true)));
         const localStreams = localStreamsSnap.docs.map(doc => ({
-          ...doc.data(),
           id: doc.id,
-          type: 'live',
+          title: doc.data().title || 'Live Stream',
+          thumbnail: doc.data().thumbnail || '/images/default-live-thumbnail.png',
+          duration: doc.data().duration || 0,
+          type: 'video' as const,
+          viewers: doc.data().viewers || 0,
+          likes: doc.data().likes || 0,
+          comments: doc.data().comments || 0,
+          description: doc.data().description || '',
           isLocal: true,
-          isRoom: false
+          isRoom: false,
+          ...doc.data()
         })) as LiveStream[];
 
         // Get live rooms
         const roomsRef = collection(db, 'liveRooms');
         const roomsSnap = await getDocs(query(roomsRef, where('isActive', '==', true)));
         const liveRooms = roomsSnap.docs.map(doc => ({
-          ...doc.data(),
           id: doc.id,
-          type: 'live',
+          title: doc.data().title || 'Live Room',
+          thumbnail: doc.data().thumbnail || '/images/default-room-thumbnail.png',
+          duration: doc.data().duration || 0,
+          type: 'video' as const,
+          viewers: doc.data().participants || 0,
+          likes: doc.data().likes || 0,
+          comments: doc.data().messages || 0,
+          description: doc.data().description || '',
+          participants: doc.data().participants || 0,
           isLocal: false,
-          isRoom: true
+          isRoom: true,
+          ...doc.data()
         })) as LiveStream[];
 
         // Combine all streams

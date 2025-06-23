@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { auth, db } from '../../lib/firebase';
-import { doc, getDoc, onSnapshot, collection, query, where, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, collection, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getVideos, Video } from '../../lib/services/videoService';
 import { LocalStream, LiveRoom, joinLiveRoom, leaveLiveRoom } from '../../lib/services/liveService';
 import YouTube from 'react-youtube';
-import { CircleDot, Users, MessageSquare, Heart, Share2, Mic, Video as VideoIcon, Send } from 'lucide-react';
+import { CircleDot, Users, MessageSquare, Heart, Send } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -32,7 +32,7 @@ export default function LiveStream() {
       try {
         // Try to get from YouTube first
         const videos = await getVideos();
-        const youtubeStream = videos.find(v => v.id === id && v.type === 'live');
+        const youtubeStream = videos.find(v => v.id === id && v.duration >= 300); // Consider longer videos as potential live content
         
         if (youtubeStream) {
           setStream(youtubeStream);
@@ -171,7 +171,7 @@ export default function LiveStream() {
         <div className="lg:col-span-3">
           {/* Stream/Room Preview */}
           <div className="relative aspect-video bg-zinc-900 rounded-xl overflow-hidden">
-            {stream.type === 'live' && !('isRoom' in stream) && (
+            {!('isRoom' in stream) && !('isLocal' in stream) && (
               <YouTube
                 videoId={stream.id}
                 opts={opts}

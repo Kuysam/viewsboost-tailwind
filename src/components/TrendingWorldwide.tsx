@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import YouTube from 'react-youtube';
 import { Video } from '../lib/services/videoService';
 
