@@ -1,7 +1,7 @@
 // src/pages/Dashboard.tsx
 import React, { useEffect, useState } from 'react';
 import { auth, db } from '../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { getVideos, Video, getTrendingVideos } from '../lib/services/videoService';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
@@ -54,11 +54,41 @@ export default function Dashboard() {
         } else if (viewerDoc.exists()) {
           setUserData(viewerDoc.data() as UserData);
         } else {
-          navigate('/get-started');
+          // User exists but doesn't have profile data - create minimal data to allow dashboard access
+          const basicUserData: UserData = {
+            firstName: user.displayName?.split(' ')[0] || 'User',
+            lastName: user.displayName?.split(' ')[1] || '',
+            email: user.email || '',
+            isCreator: false
+          };
+          setUserData(basicUserData);
+          
+          // Optionally create basic user record in Firestore for future use
+          try {
+            await setDoc(doc(db, 'users', user.uid), {
+              email: user.email,
+              displayName: user.displayName || 'User',
+              createdAt: new Date().toISOString(),
+              lastLogin: new Date().toISOString(),
+              role: 'viewer'
+            }, { merge: true });
+          } catch (error) {
+            console.log('Could not create user record, but proceeding to dashboard');
+          }
         }
       } catch (err) {
         console.error('Failed to fetch user data:', err);
-        navigate('/get-started');
+        // Don't redirect on error, just use basic user data
+        const user = auth.currentUser;
+        if (user) {
+          const basicUserData: UserData = {
+            firstName: user.displayName?.split(' ')[0] || 'User',
+            lastName: user.displayName?.split(' ')[1] || '',
+            email: user.email || '',
+            isCreator: false
+          };
+          setUserData(basicUserData);
+        }
       } finally {
         setLoading(false);
       }

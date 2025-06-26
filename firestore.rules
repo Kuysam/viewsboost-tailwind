@@ -21,8 +21,8 @@ service cloud.firestore {
       return text is string && text.size() <= 1000;
     }
 
-    function isValidTimestamp(timestamp) {
-      return timestamp is timestamp;
+    function isValidTimestamp(timestampValue) {
+      return timestampValue is timestamp;
     }
 
     function isValidEmail(email) {

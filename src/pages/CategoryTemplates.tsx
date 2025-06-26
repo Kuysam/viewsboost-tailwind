@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Search as SearchIcon, Download, Share, X } from "lucide-react";
 import { useTemplates } from "../lib/useTemplates";
+import { ImageService } from "../lib/services/imageService";
+import { useVideoPreview } from "../components/VideoPreviewExtractor";
 // @ts-ignore
 import TemplatePreviewModal from "../components/TemplatePreviewModal";
 
@@ -17,6 +19,43 @@ function CategoryTemplates() {
   // Fetch templates for this specific category
   const { templates, loading } = useTemplates(decodedCategory);
 
+  // Add force Firestore reload function
+  const forceFirestoreReload = () => {
+    console.log(`🔄 [CategoryTemplates] Forcing cache invalidation for "${decodedCategory}"...`);
+    window.dispatchEvent(new CustomEvent('templatesUpdated', { 
+      detail: { 
+        source: 'manual-reload', 
+        timestamp: Date.now(),
+        categories: [decodedCategory]
+      } 
+    }));
+  };
+
+  // Add manual Firestore test function for debugging
+  const testFirestoreDirectly = async () => {
+    console.log(`🔍 [CategoryTemplates] Testing Firestore directly for "${decodedCategory}"...`);
+    try {
+      const { collection, getDocs } = await import('firebase/firestore');
+      const { db } = await import('../lib/firebase');
+      
+      const snapshot = await getDocs(collection(db, "templates"));
+      const firestoreData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const filteredData = firestoreData.filter(doc => 
+        doc.category?.toLowerCase() === decodedCategory.toLowerCase()
+      );
+      
+      console.log(`🔍 [CategoryTemplates] Direct Firestore test results:`);
+      console.log(`- Total templates in Firestore: ${firestoreData.length}`);
+      console.log(`- Templates for "${decodedCategory}": ${filteredData.length}`);
+      console.log(`- Template titles:`, filteredData.map(t => t.title));
+      
+      alert(`Direct Firestore test:\n${firestoreData.length} total templates\n${filteredData.length} templates for "${decodedCategory}"\n\nSee console for details.`);
+    } catch (error) {
+      console.error(`❌ [CategoryTemplates] Direct Firestore test failed:`, error);
+      alert(`Firestore test failed: ${error.message}`);
+    }
+  };
+
   // Filter templates based on search query
   const filteredTemplates = templates.filter(template => 
     template.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -24,7 +63,24 @@ function CategoryTemplates() {
   );
 
   function goBack() {
-    navigate(-1); // Go back to previous page
+    // Check if we came from Studio
+    const studioContext = localStorage.getItem('studioNavigationContext');
+    
+    if (studioContext) {
+      try {
+        const context = JSON.parse(studioContext);
+        if (context.fromStudio) {
+          // Navigate back to Studio - the Studio component will restore state
+          navigate('/studio');
+          return;
+        }
+      } catch (error) {
+        console.error('🎯 [DEBUG] Error parsing Studio context:', error);
+      }
+    }
+    
+    // Fallback: Use browser back
+    navigate(-1);
   }
 
   function getCategoryIcon(category: string) {
@@ -90,10 +146,181 @@ function CategoryTemplates() {
     return "from-gray-400 to-gray-600";
   }
 
+  // Get video source based on template type (supports Envato premium videos)
+  function getVideoSource(template: any) {
+    // If template has a videoSource (Envato premium), use it directly
+    if (template.videoSource) {
+      return template.videoSource;
+    }
+    
+    if (template.category === 'TikTok Video') {
+      if (template.title?.includes('Dance')) return '/videos/video1.mp4';
+      if (template.title?.includes('Workout') || template.title?.includes('Fitness')) return '/videos/video2.mp4';
+      if (template.title?.includes('Recipe') || template.title?.includes('Food')) return '/videos/video3.mp4';
+      if (template.title?.includes('Comedy')) return '/videos/video4.mp4';
+      if (template.title?.includes('Travel')) return '/videos/video5.mp4';
+      return '/videos/video6.mp4'; // Default for other TikTok templates
+    } else if (template.category === 'YouTube Video') {
+      // Map YouTube templates to dedicated videos
+      if (template.title?.includes('Gaming') || template.title?.includes('Neon')) return '/videos/youtube/gaming-neon.mp4';
+      if (template.title?.includes('Tutorial') || template.title?.includes('Clean')) return '/videos/youtube/tutorial-clean.mp4';
+      if (template.title?.includes('Reaction') || template.title?.includes('Shocked')) return '/videos/youtube/reaction-shocked.mp4';
+      if (template.title?.includes('Tech') || template.title?.includes('Sleek')) return '/videos/youtube/tech-sleek.mp4';
+      if (template.title?.includes('Cooking') || template.title?.includes('Recipe')) return '/videos/youtube/cooking-appetizing.mp4';
+      if (template.title?.includes('Fitness') || template.title?.includes('Workout')) return '/videos/youtube/fitness-motivational.mp4';
+      if (template.title?.includes('News') || template.title?.includes('Breaking')) return '/videos/youtube/news-breaking.mp4';
+      if (template.title?.includes('Lifestyle') || template.title?.includes('Vlog')) return '/videos/youtube/lifestyle-cozy.mp4';
+      if (template.title?.includes('Music') || template.title?.includes('Artistic')) return '/videos/youtube/music-artistic.mp4';
+      if (template.title?.includes('Comedy') || template.title?.includes('Funny')) return '/videos/youtube/comedy-funny.mp4';
+      return '/videos/youtube/gaming-neon.mp4'; // Default for other YouTube templates
+    }
+    return null;
+  }
+
   function TemplateCard({ template }: { template: any }) {
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageError, setImageError] = useState(false);
+    const [showPreview, setShowPreview] = useState(false);
+    const [isValidTemplate, setIsValidTemplate] = useState(true);
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+    const [videoRef, setVideoRef] = useState<HTMLVideoElement | null>(null);
+
+    // Get video source for preview extraction
+    const videoSource = getVideoSource(template);
+    
+    // Extract video preview if template uses video preview
+    const { previewUrl: videoPreviewUrl, isLoading: videoPreviewLoading } = useVideoPreview(
+      template.useVideoPreview && videoSource ? videoSource : "", 
+      1.5 // Extract frame at 1.5 seconds
+    );
+
+    // Check if HIGH-RESOLUTION image loads successfully
+    React.useEffect(() => {
+      // Always show Envato Elements templates regardless of image loading
+      const isEnvatoTemplate = template.platform === 'Envato Elements' || template.videoSource?.includes('envato-premium');
+      
+      if (isEnvatoTemplate) {
+        setIsValidTemplate(true);
+        setShowPreview(true);
+        // Still try to load the image for better display
+        if (template.preview && !imageError && typeof window !== 'undefined') {
+          const highResUrl = ImageService.getOptimizedImageUrl(template.preview, 1200, 900, 'high');
+          ImageService.testImageLoad(highResUrl).then(result => {
+            if (result.success) {
+              setImageLoaded(true);
+              } else {
+              setImageError(true);
+              }
+          });
+        }
+        return;
+      }
+
+      if (template.preview && !imageError && typeof window !== 'undefined') {
+        // Get high-resolution optimized URL
+        const highResUrl = ImageService.getOptimizedImageUrl(template.preview, 1200, 900, 'high');
+        
+        // Test the high-resolution image
+        ImageService.testImageLoad(highResUrl).then(result => {
+          if (result.success) {
+            setImageLoaded(true);
+            setShowPreview(true);
+            setIsValidTemplate(true);
+            } else {
+            setImageError(true);
+            setImageLoaded(false);
+            setShowPreview(false);
+            
+            // For ViewsBoost templates, still show them with fallback - don't hide them!
+            const isViewsBoostTemplate = template.platform === 'ViewsBoost' || 
+                                        template.preview?.startsWith('/') || 
+                                        template.category?.includes('ViewsBoost');
+            
+            if (isViewsBoostTemplate) {
+              setIsValidTemplate(true); // Keep ViewsBoost templates visible with fallback
+              } else {
+              setIsValidTemplate(false); // Hide external templates with broken images
+              console.warn('❌ [DEBUG] External template hidden due to image failure:', result.error);
+            }
+          }
+        });
+      } else if (!template.preview) {
+        // Templates without preview URLs - show ViewsBoost and Envato templates, hide others
+        const isViewsBoostTemplate = template.platform === 'ViewsBoost' || template.category?.includes('ViewsBoost');
+        setShowPreview(false);
+        setIsValidTemplate(isViewsBoostTemplate || isEnvatoTemplate);
+      } else {
+        // Default case
+        setIsValidTemplate(true);
+      }
+    }, [template.preview, imageError]);
+
+    // Don't render external templates with broken images, but always show ViewsBoost templates
+    if (!isValidTemplate) {
+      return null;
+    }
+
+    // Create background style with video preview, HIGH-RESOLUTION image, or attractive fallback
+    const backgroundStyle = template.useVideoPreview && videoPreviewUrl
+      ? {
+          backgroundImage: `url('${videoPreviewUrl}')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }
+      : showPreview && imageLoaded && !imageError
+      ? { 
+          backgroundImage: `url('${ImageService.getOptimizedImageUrl(template.preview || '', 1200, 900, 'high')}')`, 
+          backgroundSize: 'cover', 
+          backgroundPosition: 'center', 
+          backgroundRepeat: 'no-repeat' 
+        }
+      : getTikTokFallbackBackground(template);
+
+    // Toggle video play/pause
+    const toggleVideoPlayback = (e: React.MouseEvent) => {
+      e.stopPropagation(); // Prevent card click
+      if (videoRef) {
+        if (isVideoPlaying) {
+          videoRef.pause();
+        } else {
+          videoRef.play();
+        }
+        setIsVideoPlaying(!isVideoPlaying);
+      }
+    };
+
+    // Generate TikTok-specific fallback backgrounds
+    function getTikTokFallbackBackground(template: any) {
+      if (template.category === 'TikTok Video') {
+        // TikTok-themed gradients based on template type
+        if (template.title?.includes('Dance')) {
+          return { background: 'linear-gradient(135deg, #ff0050 0%, #00f2ea 100%)' }; // TikTok brand colors
+        } else if (template.title?.includes('Comedy')) {
+          return { background: 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)' }; // Comedy orange
+        } else if (template.title?.includes('Recipe') || template.title?.includes('Food')) {
+          return { background: 'linear-gradient(135deg, #ff9500 0%, #ff6b35 100%)' }; // Food orange
+        } else if (template.title?.includes('Workout') || template.title?.includes('Fitness')) {
+          return { background: 'linear-gradient(135deg, #ff4757 0%, #ff6b6b 100%)' }; // Fitness red
+        } else if (template.title?.includes('Fashion') || template.title?.includes('OOTD')) {
+          return { background: 'linear-gradient(135deg, #e91e63 0%, #9c27b0 100%)' }; // Fashion pink
+        } else if (template.title?.includes('Study') || template.title?.includes('Educational')) {
+          return { background: 'linear-gradient(135deg, #3498db 0%, #2ecc71 100%)' }; // Education blue
+        } else if (template.title?.includes('Travel')) {
+          return { background: 'linear-gradient(135deg, #00bcd4 0%, #ff9800 100%)' }; // Travel cyan
+        } else if (template.title?.includes('Pet')) {
+          return { background: 'linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%)' }; // Pet pink/teal
+        } else {
+          return { background: 'linear-gradient(135deg, #ff0050 0%, #000000 100%)' }; // Default TikTok
+        }
+      }
+      // Default fallback for non-TikTok templates
+      return { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' };
+    }
+
     return (
       <div
-        className="relative group rounded-2xl p-5 cursor-pointer transition-all overflow-hidden shadow-lg bg-gray-200 border border-transparent hover:border-yellow-400 hover:shadow-[0_4px_32px_0_rgba(255,214,10,0.15)]"
+        className="relative group rounded-2xl p-5 cursor-pointer transition-all overflow-hidden shadow-lg border border-transparent hover:border-yellow-400 hover:shadow-[0_4px_32px_0_rgba(255,214,10,0.15)] hover:scale-105"
         style={{
           minHeight: 240,
           display: "flex",
@@ -101,28 +328,113 @@ function CategoryTemplates() {
           alignItems: "flex-start",
           justifyContent: "flex-end",
           position: "relative",
-          background: template.preview ? `url('${template.preview}') center center/cover no-repeat` : '#f5f5f5',
+          ...backgroundStyle
         }}
         onClick={() => setPreviewTemplate(template)}
         tabIndex={0}
         role="button"
       >
+        {/* Loading indicator for video preview extraction or HIGH-RES images */}
+        {((template.useVideoPreview && videoPreviewLoading) || (template.preview && !imageLoaded && !imageError)) && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 rounded-2xl">
+            <div className="animate-spin text-2xl text-yellow-400">
+              {template.useVideoPreview ? '🎬' : '⚡'}
+            </div>
+            <div className="text-white text-sm mt-2">
+              {template.useVideoPreview ? 'Generating video preview...' : 'Loading preview...'}
+            </div>
+          </div>
+        )}
+
+        {/* Video player for TikTok Video and YouTube Video templates */}
+        {videoSource && (template.category === 'TikTok Video' || template.category === 'YouTube Video') ? (
+          <div className="absolute inset-0 w-full h-full rounded-2xl overflow-hidden" style={{ zIndex: 1 }}>
+            <video
+              ref={setVideoRef}
+              src={videoSource}
+              className="w-full h-full object-cover"
+              loop
+              muted
+              playsInline
+              onPlay={() => setIsVideoPlaying(true)}
+              onPause={() => setIsVideoPlaying(false)}
+              onEnded={() => setIsVideoPlaying(false)}
+            />
+            
+            {/* Video controls overlay */}
+            <div 
+              className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity"
+              onClick={toggleVideoPlayback}
+            >
+              <button className="bg-black/60 hover:bg-black/80 text-white p-3 rounded-full transition-colors">
+                {isVideoPlaying ? (
+                  <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                    <path d="M7 6.25v3.5a.25.25 0 0 0 .5 0V6.25a.25.25 0 0 0-.5 0zm2 0v3.5a.25.25 0 0 0 .5 0V6.25a.25.25 0 0 0-.5 0z"/>
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
+                  </svg>
+                )}
+              </button>
+            </div>
+
+            {/* Video indicator */}
+            <div className={`absolute top-2 left-2 text-white px-2 py-1 rounded text-xs font-bold flex items-center gap-1 ${
+              template.category === 'TikTok Video' ? 'bg-[#ff0050]' : 'bg-[#ff0000]'
+            }`} style={{ zIndex: 3 }}>
+              {isVideoPlaying ? '⏸️' : '▶️'} {template.category === 'TikTok Video' ? 'TikTok' : 'YouTube'}
+            </div>
+          </div>
+        ) : (
+          /* Show actual preview image when loaded */
+          template.preview && imageLoaded && !imageError && (
+            <img
+              src={ImageService.getOptimizedImageUrl(template.preview || '', 1200, 900, 'high')}
+              alt={template.title}
+              className="absolute inset-0 w-full h-full object-cover rounded-2xl"
+              style={{ zIndex: 1 }}
+            />
+          )
+        )}
+
         {/* Gradient overlay for text readability */}
-        <div className="absolute inset-0 rounded-2xl" style={{background: 'linear-gradient(to top, rgba(0,0,0,0.7) 60%, rgba(0,0,0,0.1) 100%)'}} />
+        <div className="absolute inset-0 rounded-2xl" style={{background: 'linear-gradient(to top, rgba(0,0,0,0.7) 60%, rgba(0,0,0,0.1) 100%)', zIndex: 2}} />
         
-        <div className="text-3xl mb-2 z-10 relative text-yellow-400 drop-shadow-[0_2px_8px_#000a]">
+        <div className="text-3xl mb-2 relative text-yellow-400 drop-shadow-[0_2px_8px_#000a]" style={{zIndex: 10}}>
           {template.icon || getCategoryIcon(category || "")}
         </div>
         
-        <div className="text-xl font-bold text-white z-10 relative drop-shadow-lg">
+        <div className="text-xl font-bold text-white relative drop-shadow-lg" style={{zIndex: 10}}>
           {template.title}
         </div>
         
-        <div className="text-md text-white mt-1 mb-2 z-10 relative font-medium drop-shadow-md">
+        <div className="text-md text-white mt-1 mb-2 relative font-medium drop-shadow-md" style={{zIndex: 10}}>
           {template.desc}
         </div>
+
+        {/* High-res preview indicator or video indicator */}
+        {template.useVideoPreview && videoPreviewUrl ? (
+          <div className="absolute top-3 right-3 bg-purple-500 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1" style={{zIndex: 10}}>
+            🎬 REAL
+          </div>
+        ) : videoSource && (template.category === 'TikTok Video' || template.category === 'YouTube Video') ? (
+          <div className="absolute top-3 right-3 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1" style={{zIndex: 10}}>
+            🎥 VIDEO
+          </div>
+        ) : showPreview && imageLoaded && !imageError && (
+          <div className="absolute top-3 right-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1" style={{zIndex: 10}}>
+            🔍 HD
+          </div>
+        )}
         
-        <span className="absolute bottom-3 right-4 text-2xl opacity-10 group-hover:opacity-25 transition text-yellow-400">
+        {/* Resolution indicator on hover */}
+        <div className="absolute top-3 left-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full font-bold opacity-0 group-hover:opacity-100 transition-opacity" style={{zIndex: 10}}>
+          {showPreview && imageLoaded ? '1200×900' : 'Loading...'}
+        </div>
+        
+        <span className="absolute bottom-3 right-4 text-2xl opacity-10 group-hover:opacity-25 transition text-yellow-400" style={{zIndex: 10}}>
           {template.icon || getCategoryIcon(category || "")}
         </span>
       </div>
@@ -138,8 +450,31 @@ function CategoryTemplates() {
           className="flex items-center gap-2 px-4 py-2 font-semibold text-yellow-300 bg-[#16171c] hover:bg-[#232436] rounded-lg transition mr-6"
         >
           <ArrowLeft size={20} />
+          Back
+        </button>
+        <button
+          onClick={() => navigate('/studio')}
+          className="ml-2 px-4 py-2 font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition"
+        >
           Back to Studio
         </button>
+        
+        {import.meta.env.DEV && (
+          <>
+            <button
+              onClick={forceFirestoreReload}
+              className="ml-2 px-4 py-2 font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition"
+            >
+              🔄 Force Reload
+            </button>
+            <button
+              onClick={testFirestoreDirectly}
+              className="ml-2 px-4 py-2 font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition"
+            >
+              🔍 Test Firestore
+            </button>
+          </>
+        )}
         
         <div className="flex items-center gap-3">
           <span className="text-4xl">{getCategoryIcon(decodedCategory)}</span>
