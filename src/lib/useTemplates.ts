@@ -314,13 +314,10 @@ export function useTemplates(category: string | null = "Business") {
 
   useEffect(() => {
     // ENHANCED: Listen for comprehensive list of events - SKIP IN ALL EDITOR PAGES
-    const isEditorPage = window.location.pathname.includes('/studio') || 
-                        window.location.pathname.includes('/studio') ||
+    const isEditorPage = window.location.pathname.includes('/studio') ||
                         window.location.pathname.includes('/editor') ||
                         window.location.pathname.includes('/timeline-test') ||
-                        window.location.pathname.includes('/video-processing-test') ||
-                        window.location.pathname.includes('/simple-editor') ||
-                        window.location.pathname.includes('/studio');
+                        window.location.pathname.includes('/video-processing-test');
     
     if (isEditorPage) {
       console.log('🚫 [useTemplates] SKIPPING ALL EVENT LISTENERS on editor page to prevent infinite loops:', window.location.pathname);

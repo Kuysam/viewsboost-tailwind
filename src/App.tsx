@@ -12,7 +12,7 @@ import SignIn from './pages/SignIn';
 import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
-import SimpleCanvaEditor from './pages/SimpleCanvaEditor';
+
 
 
 import VideoProcessingTest from './pages/VideoProcessingTest';
@@ -84,7 +84,7 @@ export default function App() {
 
             <Route path="/video-processing-test" element={<VideoProcessingTest />} />
             <Route path="/timeline-test" element={<TimelineTest />} />
-            <Route path="/simple-editor" element={<SimpleCanvaEditor />} />
+            <Route path="/simple-editor" element={<Navigate to="/studio" replace />} />
           
           {/* Template Importer - Lazy loaded (large component) */}
           <Route path="/import-templates" element={<TemplateImporter />} />
