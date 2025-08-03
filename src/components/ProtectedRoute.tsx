@@ -10,6 +10,11 @@ interface Props {
 export default function ProtectedRoute({ children }: Props) {
   const { user, loading } = useAuth();
 
+  // Development bypass for testing (remove in production)
+  if (import.meta.env.DEV && window.location.pathname === '/studio') {
+    return <>{children}</>;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

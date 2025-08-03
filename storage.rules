@@ -1,0 +1,88 @@
+rules_version = '2';
+
+// Firebase Storage Rules for ViewsBoost Template Uploads
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return request.auth != null && 
+             request.auth.token.email == 'cham212003@gmail.com';
+    }
+    
+    function isValidTemplateFile() {
+      return resource.contentType.matches('video/.*') ||
+             resource.contentType.matches('image/.*') ||
+             resource.contentType.matches('application/pdf') ||
+             resource.contentType.matches('application/.*document.*') ||
+             request.resource.contentType.matches('video/.*') ||
+             request.resource.contentType.matches('image/.*') ||
+             request.resource.contentType.matches('application/pdf') ||
+             request.resource.contentType.matches('application/.*document.*');
+    }
+    
+    function isReasonableFileSize() {
+      return request.resource.size < 500 * 1024 * 1024; // 500MB limit
+    }
+
+    // Templates directory - allow authenticated users to upload all template types
+    match /Templates/{fileName} {
+      // Allow read for everyone (for public template access)
+      allow read: if true;
+      
+      // Allow upload for authenticated users with file size/type limits
+      allow write: if isAuthenticated() && 
+                      isValidTemplateFile() && 
+                      isReasonableFileSize();
+      
+      // Allow delete for admin or original uploader
+      allow delete: if isAdmin();
+    }
+    
+    // Templates subdirectories - support organized folder structure
+    match /Templates/{subFolder}/{fileName} {
+      // Allow read for everyone (for public template access)
+      allow read: if true;
+      
+      // Allow upload for authenticated users with file size/type limits
+      allow write: if isAuthenticated() && 
+                      isValidTemplateFile() && 
+                      isReasonableFileSize();
+      
+      // Allow delete for admin or original uploader
+      allow delete: if isAdmin();
+    }
+    
+    // Legacy videos directory - still support for existing files
+    match /videos/{fileName} {
+      // Allow read for everyone (for public template access)
+      allow read: if true;
+      
+      // Allow upload for authenticated users with file size/type limits
+      allow write: if isAuthenticated() && 
+                      isValidTemplateFile() && 
+                      isReasonableFileSize();
+      
+      // Allow delete for admin or original uploader
+      allow delete: if isAdmin();
+    }
+    
+    // User uploads directory - users can only access their own files
+    match /user-uploads/{userId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && 
+                      request.auth.uid == userId && 
+                      isReasonableFileSize();
+      allow delete: if isAuthenticated() && 
+                       request.auth.uid == userId;
+    }
+    
+    // Deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+} 

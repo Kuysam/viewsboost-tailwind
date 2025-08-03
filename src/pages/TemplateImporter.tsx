@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from "react";
 import { db } from "../lib/firebase";
 import { collection, addDoc, getDocs, deleteDoc } from "firebase/firestore";
 import { externalApiService } from '../lib/services/externalApiService';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../lib/firebase';
+import { ImageService } from '../lib/services/imageService';
 
 // Enhanced Enterprise Template Importer
 // Features: Smart queue management, adjustable batch sizes, auto-save remaining templates, resume capability
@@ -127,6 +130,9 @@ const TemplateImporter: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Add state for selected video files
+  const [videoFiles, setVideoFiles] = useState<FileList | null>(null);
+
   // Load saved queues on component mount
   useEffect(() => {
     loadSavedQueues();
@@ -184,20 +190,54 @@ const TemplateImporter: React.FC = () => {
       
       existingTemplates.forEach(doc => {
         const template = doc.data();
-        const identifier = `${template.title?.toLowerCase() || ''}::${template.category?.toLowerCase() || ''}`;
-        existingIdentifiers.add(identifier);
+        // ✅ ENHANCED: Better duplicate detection using multiple identifiers
+        const titleId = `${template.title?.toLowerCase().trim() || ''}`;
+        const categoryId = `${template.category?.toLowerCase().trim() || ''}`;
+        const combinedId = `${titleId}::${categoryId}`;
+        const imageSourceId = template.imageSource ? `img::${template.imageSource}` : null;
+        const previewId = template.preview ? `preview::${template.preview}` : null;
+        const firestoreId = doc.id;
+        
+        existingIdentifiers.add(combinedId);
+        if (imageSourceId) existingIdentifiers.add(imageSourceId);
+        if (previewId) existingIdentifiers.add(previewId);
+        existingIdentifiers.add(firestoreId);
       });
 
       const unique: Template[] = [];
       const duplicates: Template[] = [];
+      const processedInBatch = new Set<string>(); // ✅ NEW: Track within current batch
 
       newTemplates.forEach(template => {
-        const identifier = `${template.title?.toLowerCase() || ''}::${template.category?.toLowerCase() || ''}`;
-        if (existingIdentifiers.has(identifier)) {
+        const titleId = `${template.title?.toLowerCase().trim() || ''}`;
+        const categoryId = `${template.category?.toLowerCase().trim() || ''}`;
+        const combinedId = `${titleId}::${categoryId}`;
+        const imageSourceId = template.imageSource ? `img::${template.imageSource}` : null;
+        const previewId = template.preview ? `preview::${template.preview}` : null;
+        const templateId = template.id;
+        
+        // ✅ FIXED: Check both existing templates AND within current batch
+        const isDuplicate = existingIdentifiers.has(combinedId) || 
+                           processedInBatch.has(combinedId) ||
+                           (imageSourceId && (existingIdentifiers.has(imageSourceId) || processedInBatch.has(imageSourceId))) ||
+                           (previewId && (existingIdentifiers.has(previewId) || processedInBatch.has(previewId))) ||
+                           (templateId && (existingIdentifiers.has(templateId) || processedInBatch.has(templateId)));
+        
+        if (isDuplicate) {
           duplicates.push(template);
         } else {
           unique.push(template);
-          existingIdentifiers.add(identifier);
+          // ✅ NEW: Add to processed batch to prevent duplicates within same import
+          processedInBatch.add(combinedId);
+          if (imageSourceId) processedInBatch.add(imageSourceId);
+          if (previewId) processedInBatch.add(previewId);
+          if (templateId) processedInBatch.add(templateId);
+          
+          // Also add to existing identifiers for next iteration
+          existingIdentifiers.add(combinedId);
+          if (imageSourceId) existingIdentifiers.add(imageSourceId);
+          if (previewId) existingIdentifiers.add(previewId);
+          if (templateId) existingIdentifiers.add(templateId);
         }
       });
 
@@ -243,58 +283,153 @@ const TemplateImporter: React.FC = () => {
     };
   };
 
+  // Enhanced template processing with proper field mapping
+  const processTemplate = (template: any): any => {
+    // ✅ ENHANCED: Handle user's specific JSON structure
+    const processedTemplate = {
+      // Core fields
+      title: template.title || 'Untitled Template',
+      category: template.category || 'General',
+      desc: template.desc || template.description || template.prompt || 'No description available',
+      
+      // ✅ Handle both imageSource and videoSource
+      imageSource: template.imageSource || template.videoSource || template.preview,
+      videoSource: template.videoSource || template.imageSource || template.preview,
+      
+      // ✅ ENHANCED: Use TikTok-style optimized preview URL generation
+      preview: (() => {
+        // First, determine the source for preview generation
+        const sourceForPreview = template.imageSource || template.videoSource || template.preview;
+        
+        if (sourceForPreview) {
+          if (sourceForPreview.startsWith('http')) {
+            // External URL - use ImageService for optimization (same as TikTok templates)
+            return ImageService.getOptimizedImageUrl(sourceForPreview, 1200, 900, 'high');
+          } else {
+            // Local filename - convert to /images/ path
+            return `/images/${sourceForPreview}`;
+          }
+        } else if (template.preview) {
+          if (template.preview.startsWith('http')) {
+            // External preview URL - optimize it
+            return ImageService.getOptimizedImageUrl(template.preview, 1200, 900, 'high');
+          } else {
+            // Local preview filename
+            return `/images/${template.preview}`;
+          }
+        }
+        
+        return '/default-template.png';
+      })(),
+      
+      // ✅ Handle preview flags
+      useImagePreview: template.useImagePreview !== undefined ? template.useImagePreview : true,
+      useVideoPreview: template.useVideoPreview !== undefined ? template.useVideoPreview : false,
+      
+      // ✅ Auto-generated fields
+      aspectRatio: template.aspectRatio || '16:9',
+      autoGenerated: template.autoGenerated || false,
+      fileType: template.fileType || 'image',
+      originalExtension: template.originalExtension || '.jpg',
+      
+      // Standard fields
+      icon: template.icon || '🎨',
+      platform: template.platform || 'General',
+      quality: template.quality || 'High Quality',
+      source: template.source || 'General',
+      
+      // Metadata
+      tags: template.tags || [],
+      isPremium: template.isPremium || false,
+      isNew: template.isNew || false,
+      isTrending: template.isTrending || false,
+      
+      // Timestamps
+      createdAt: template.createdAt || new Date().toISOString(),
+      importedAt: new Date().toISOString(),
+      
+      // Import tracking
+      importBatch: template.importBatch || `batch_${Date.now()}`,
+      detectedPlatform: template.detectedPlatform || detectTemplatePlatform(template),
+      
+      // Preserve all other fields
+      ...template
+    };
+    
+    return processedTemplate;
+  };
+
   // Enhanced import with queue management
   const importTemplatesWithQueue = async (queue: ImportQueue) => {
     setImporting(true);
     setCurrentQueueId(queue.id);
     setError("");
-    
     const startTime = Date.now();
     let currentBatch = 0;
     const totalBatches = Math.ceil((queue.total - queue.processed) / queue.batchSize);
-    
     try {
-      // Update queue status
       queue.status = 'processing';
       queue.lastUpdated = new Date().toISOString();
       saveQueueToStorage(queue);
-      
       const remainingTemplates = queue.templates.slice(queue.processed);
-      
       for (let i = 0; i < remainingTemplates.length && !isPaused; i += queue.batchSize) {
         currentBatch++;
         const batch = remainingTemplates.slice(i, Math.min(i + queue.batchSize, remainingTemplates.length));
-        
         setMessage(`🚀 Processing batch ${currentBatch}/${totalBatches} (${batch.length} templates)...`);
-        
-        // Process each template in the batch
         for (let j = 0; j < batch.length && !isPaused; j++) {
-          const template = batch[j];
+          let template = batch[j];
           const currentIndex = queue.processed + i + j + 1;
-          
           setProgress({
             current: currentIndex,
             total: queue.total,
             percentage: Math.round((currentIndex / queue.total) * 100)
           });
-          
           try {
-            // Detect platform from template data
-            const detectedPlatform = detectTemplatePlatform(template);
-            
-            await addDoc(collection(db, "templates"), {
-              ...template,
-              importedAt: new Date().toISOString(),
-              importBatch: queue.id,
-              detectedPlatform: detectedPlatform,
-              source: template.source || detectedPlatform || 'Unknown'
-            });
-            
+            // Get video files from queue if present
+            const videoFiles: FileList | null = (queue as any).videoFiles || null;
+            // Helper to find a File by name
+            const findFileByName = (name: string): File | null => {
+              if (!videoFiles) return null;
+              for (let i = 0; i < videoFiles.length; i++) {
+                if (videoFiles[i].name === name) return videoFiles[i];
+              }
+              return null;
+            };
+            // --- NEW: Upload video file to Firebase Storage if needed ---
+            const isRemoteUrl = (url: string) => url && (url.startsWith('http://') || url.startsWith('https://'));
+            // If videoSource is a local path and not a remote URL, attempt upload
+            if (template.videoSource && !isRemoteUrl(template.videoSource)) {
+              const file = findFileByName(template.videoSource.replace(/^.*[\\\/]/, ''));
+              if (file) {
+                const storagePath = `videos/${file.name}`;
+                const sRef = storageRef(storage, storagePath);
+                await uploadBytes(sRef, file);
+                const downloadURL = await getDownloadURL(sRef);
+                template.videoSource = downloadURL;
+              } else {
+                console.warn('Video file not found for upload:', template.videoSource);
+              }
+            }
+            // If preview is a local path and not a remote URL, attempt upload
+            if (template.preview && !isRemoteUrl(template.preview)) {
+              const file = findFileByName(template.preview.replace(/^.*[\\\/]/, ''));
+              if (file) {
+                const storagePath = `videos/${file.name}`;
+                const sRef = storageRef(storage, storagePath);
+                await uploadBytes(sRef, file);
+                const downloadURL = await getDownloadURL(sRef);
+                template.preview = downloadURL;
+              } else {
+                console.warn('Preview video file not found for upload:', template.preview);
+              }
+            }
+            // --- END NEW ---
+            const processedTemplate = processTemplate(template);
+            await addDoc(collection(db, "templates"), processedTemplate);
             setImportStats(prev => ({
               ...prev,
               totalImported: prev.totalImported + 1
             }));
-            
           } catch (error) {
             console.error(`Failed to import template: ${template.title}`, error);
             setImportStats(prev => ({
@@ -302,53 +437,35 @@ const TemplateImporter: React.FC = () => {
               failedImports: prev.failedImports + 1
             }));
           }
-          
-          // Update queue progress
           queue.processed = currentIndex;
           queue.lastUpdated = new Date().toISOString();
-          
-          // Auto-save progress every 10 templates
           if (currentIndex % 10 === 0) {
             saveQueueToStorage(queue);
           }
-          
-          // Small delay to prevent overwhelming the database
           await new Promise(resolve => setTimeout(resolve, 100));
         }
-        
-        // Check if paused between batches
         if (isPaused) {
           queue.status = 'paused';
           saveQueueToStorage(queue);
           setMessage(`⏸️ Import paused. Progress saved. ${queue.total - queue.processed} templates remaining.`);
           break;
         }
-        
-        // Batch completion message
         setMessage(`✅ Batch ${currentBatch}/${totalBatches} completed! ${queue.total - queue.processed} remaining...`);
       }
-      
       if (!isPaused && queue.processed >= queue.total) {
-        // Import completed
         queue.status = 'completed';
         queue.lastUpdated = new Date().toISOString();
-        
         const endTime = Date.now();
         const totalTime = (endTime - startTime) / 1000;
         const avgTimePerTemplate = totalTime / queue.total;
-        
         setImportStats(prev => ({
           ...prev,
           averageTimePerTemplate: avgTimePerTemplate
         }));
-        
         setMessage(`🎉 Import completed! ${queue.total} templates imported in ${totalTime.toFixed(1)}s`);
-        
-        // Track platform analytics for completed import
         try {
           const platformCounts: { [key: string]: number } = {};
           const categories: string[] = [];
-          
           queue.templates.forEach(template => {
             const platform = detectTemplatePlatform(template);
             platformCounts[platform] = (platformCounts[platform] || 0) + 1;
@@ -356,13 +473,9 @@ const TemplateImporter: React.FC = () => {
               categories.push(template.category);
             }
           });
-          
-          // Update analytics for each platform detected
           for (const [platform, count] of Object.entries(platformCounts)) {
             if (platform !== 'Manual Import') {
-              // Import the analytics service dynamically to avoid circular imports
               const { templateAnalyticsService } = await import('../lib/services/templateAnalyticsService');
-              
               await templateAnalyticsService.trackTemplateImport(
                 platform,
                 platform === 'Unsplash' ? 'https://unsplash.com' :
@@ -379,19 +492,15 @@ const TemplateImporter: React.FC = () => {
               );
             }
           }
-          
           setMessage(prev => prev + ` | Platform tracking: ${Object.entries(platformCounts).map(([p, c]) => `${p}: ${c}`).join(', ')}`);
         } catch (error) {
           console.error('Failed to track platform analytics:', error);
         }
-        
-        // Remove completed queue from storage
         const savedQueues = JSON.parse(localStorage.getItem('templateImportQueues') || '[]');
         const filteredQueues = savedQueues.filter((q: ImportQueue) => q.id !== queue.id);
         localStorage.setItem('templateImportQueues', JSON.stringify(filteredQueues));
         setImportQueue(filteredQueues);
       }
-      
     } catch (error) {
       console.error('Import failed:', error);
       queue.status = 'failed';
@@ -1040,6 +1149,16 @@ const TemplateImporter: React.FC = () => {
                 onChange={handleFileChange}
                 disabled={importing}
                 className="w-full p-4 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-purple-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700"
+              />
+            </div>
+            <div>
+              <label className="block text-gray-300 mb-3">Select video files:</label>
+              <input
+                type="file"
+                accept="video/*"
+                multiple
+                onChange={e => setVideoFiles(e.target.files)}
+                style={{ marginTop: 12, marginBottom: 12 }}
               />
             </div>
           </div>

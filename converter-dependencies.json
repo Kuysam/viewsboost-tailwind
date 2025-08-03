@@ -1,0 +1,102 @@
+{
+  "name": "viewsboost-file-converter-dependencies",
+  "description": "Dependencies required for the comprehensive file conversion system",
+  "dependencies": {
+    "core": {
+      "sharp": "^0.33.0",
+      "jimp": "^0.22.10",
+      "canvas": "^2.11.2"
+    },
+    "video": {
+      "ffmpeg-static": "^5.2.0",
+      "fluent-ffmpeg": "^2.1.2",
+      "@ffmpeg/ffmpeg": "^0.12.7",
+      "@ffmpeg/util": "^0.12.1"
+    },
+    "audio": {
+      "lamejs": "^1.2.1",
+      "opus-media-recorder": "^0.8.0",
+      "web-audio-api": "^0.2.2"
+    },
+    "documents": {
+      "pdf-lib": "^1.17.1",
+      "pdf2pic": "^3.0.4",
+      "mammoth": "^1.6.0",
+      "docx": "^8.5.0",
+      "officegen": "^0.6.5",
+      "jspdf": "^2.5.1",
+      "puppeteer": "^21.6.1",
+      "playwright": "^1.40.1"
+    },
+    "adobe": {
+      "ag-psd": "^16.1.0",
+      "psd.js": "^3.4.0",
+      "opentype.js": "^1.3.4"
+    },
+    "archives": {
+      "node-7z": "^3.0.0",
+      "yauzl": "^3.0.0",
+      "yazl": "^2.5.1",
+      "archiver": "^6.0.1",
+      "unzipper": "^0.10.14"
+    },
+    "fonts": {
+      "opentype.js": "^1.3.4",
+      "fonteditor-core": "^2.4.0",
+      "font2base64": "^1.0.0"
+    },
+    "images": {
+      "imagemin": "^8.0.1",
+      "imagemin-mozjpeg": "^10.0.0",
+      "imagemin-pngquant": "^9.0.2",
+      "imagemin-webp": "^8.0.0",
+      "gif-encoder": "^0.7.2",
+      "heic-convert": "^1.2.4"
+    },
+    "utilities": {
+      "file-type": "^18.7.0",
+      "mime-types": "^2.1.35",
+      "buffer": "^6.0.3"
+    }
+  },
+  "devDependencies": {
+    "@types/fluent-ffmpeg": "^2.1.24",
+    "@types/mime-types": "^2.1.4",
+    "@types/archiver": "^6.0.2"
+  },
+  "installation_commands": [
+    "npm install sharp jimp canvas",
+    "npm install ffmpeg-static fluent-ffmpeg @ffmpeg/ffmpeg @ffmpeg/util",
+    "npm install lamejs opus-media-recorder web-audio-api",
+    "npm install pdf-lib pdf2pic mammoth docx officegen jspdf",
+    "npm install puppeteer playwright",
+    "npm install ag-psd opentype.js",
+    "npm install node-7z yauzl yazl archiver unzipper",
+    "npm install fonteditor-core font2base64",
+    "npm install imagemin imagemin-mozjpeg imagemin-pngquant imagemin-webp gif-encoder heic-convert",
+    "npm install file-type mime-types buffer",
+    "npm install -D @types/fluent-ffmpeg @types/mime-types @types/archiver"
+  ],
+  "system_requirements": {
+    "ffmpeg": "Required for video/audio conversion - install via: brew install ffmpeg (Mac) or apt-get install ffmpeg (Ubuntu)",
+    "imagemagick": "Optional for advanced image processing - install via: brew install imagemagick",
+    "poppler": "Required for PDF processing - install via: brew install poppler",
+    "ghostscript": "Required for PDF/PostScript processing - install via: brew install ghostscript"
+  },
+  "file_format_coverage": {
+    "video": [".mp4", ".avi", ".mov", ".mkv", ".webm", ".wmv", ".flv", ".ogv", ".3gp", ".m4v", ".mpg", ".mpeg", ".ts", ".vob"],
+    "audio": [".mp3", ".wav", ".aac", ".ogg", ".flac", ".m4a", ".wma", ".aiff", ".ac3", ".dts"],
+    "image": [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tiff", ".svg", ".heic", ".avif", ".ico", ".tga", ".ppm", ".pgm", ".pbm"],
+    "document": [".pdf", ".doc", ".docx", ".txt", ".html", ".rtf", ".odt", ".epub", ".md", ".csv"],
+    "adobe": [".aep", ".mogrt", ".psd", ".ai", ".eps"],
+    "archive": [".zip", ".rar", ".7z", ".tar", ".gz", ".bz2", ".xz"],
+    "font": [".ttf", ".otf", ".woff", ".woff2", ".eot"],
+    "total_formats": 70
+  },
+  "performance_notes": {
+    "video_conversion": "CPU intensive - consider server-side processing for large files",
+    "adobe_formats": "Require specialized libraries and may have limitations without Adobe software",
+    "browser_limitations": "Some conversions work better in Node.js environment",
+    "memory_usage": "Large files may require streaming and chunked processing"
+  }
+} 

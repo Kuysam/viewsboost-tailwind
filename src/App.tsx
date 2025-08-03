@@ -12,6 +12,11 @@ import SignIn from './pages/SignIn';
 import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
+import SimpleCanvaEditor from './pages/SimpleCanvaEditor';
+
+
+import VideoProcessingTest from './pages/VideoProcessingTest';
+import TimelineTest from './pages/TimelineTest';
 
 // Lazy load heavy components for better code splitting
 const VideoWatchPage = React.lazy(() => import('./pages/VideoWatchPage'));
@@ -29,6 +34,8 @@ const StudioLive = React.lazy(() => import('./pages/studio/Live'));
 const StudioRoom = React.lazy(() => import('./pages/studio/Room'));
 const TemplateImporter = React.lazy(() => import('./pages/TemplateImporter'));
 const CategoryTemplates = React.lazy(() => import('./pages/CategoryTemplates'));
+// TemplateEditor replaced by Studio - all editor routes now use Studio
+// const TemplateEditor = React.lazy(() => import('./pages/TemplateEditor'));
 
 // Lazy load admin panel (rarely accessed, very large)
 const AdminPanel = React.lazy(() => import('./pages/AdminPanel'));
@@ -72,7 +79,12 @@ export default function App() {
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/get-started" element={<GetStarted />} />
           <Route path="/sign-in" element={<SignIn />} />
-          <Route path="/auth" element={<SignIn />} /> {/* Alias for /auth */}
+                      <Route path="/auth" element={<SignIn />} /> {/* Alias for /auth */}
+
+
+            <Route path="/video-processing-test" element={<VideoProcessingTest />} />
+            <Route path="/timeline-test" element={<TimelineTest />} />
+            <Route path="/simple-editor" element={<SimpleCanvaEditor />} />
           
           {/* Template Importer - Lazy loaded (large component) */}
           <Route path="/import-templates" element={<TemplateImporter />} />
@@ -177,6 +189,56 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <CategoryTemplates />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Studio Editor Routes - All editor routes now use Studio */}
+          <Route
+            path="/editor/shorts"
+            element={
+              <ProtectedRoute>
+                <Studio />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/editor/story"
+            element={
+              <ProtectedRoute>
+                <Studio />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/editor/square"
+            element={
+              <ProtectedRoute>
+                <Studio />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/editor/thumbnail"
+            element={
+              <ProtectedRoute>
+                <Studio />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/editor/video"
+            element={
+              <ProtectedRoute>
+                <Studio />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/editor/original"
+            element={
+              <ProtectedRoute>
+                <Studio />
               </ProtectedRoute>
             }
           />

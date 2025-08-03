@@ -161,13 +161,12 @@ export default function GetStarted() {
     if (!await validateChannelId()) return;
 
     try {
-      let user = auth.currentUser;
-      if (!user) {
-        const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
-        user = cred.user;
-      }
+      // Create Firebase Auth user first
+      const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const user = cred.user;
 
-      const userData: UserData = {
+      // Simple user data (matching original working pattern)
+      const baseData = {
         uid: user.uid,
         email: data.email,
         firstName: data.firstName,
@@ -177,23 +176,19 @@ export default function GetStarted() {
         city: data.city,
         country: data.country,
         createdAt: new Date().toISOString(),
-        isCreator,
       };
 
-      if (isCreator) {
-        userData.channelId = data.channelId;
-        await setDoc(doc(db, 'creators', user.uid), userData);
+      // Write to creators or viewers collection (original pattern)
+      if (isCreator && data.channelId) {
+        await setDoc(doc(db, 'creators', user.uid), {
+          ...baseData,
+          channelName: `Channel ${data.firstName}`, // Original used channelName
+          channelUrl: `https://youtube.com/channel/${data.channelId}`, // Original used channelUrl
+          channelDescription: '', // Original pattern
+        });
       } else {
-        await setDoc(doc(db, 'viewers', user.uid), userData);
+        await setDoc(doc(db, 'viewers', user.uid), baseData);
       }
-      // Always create a user doc for rewards and global profile
-      await setDoc(doc(db, 'users', user.uid), {
-        email: data.email,
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
-        displayName: data.firstName + ' ' + data.lastName,
-        role: isCreator ? 'creator' : 'viewer'
-      }, { merge: true });
 
       navigate('/dashboard');
     } catch (err: any) {
@@ -207,30 +202,22 @@ export default function GetStarted() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Check if user exists in either collection
-      const [creatorSnap, viewerSnap] = await Promise.all([
-        getDoc(doc(db, 'creators', user.uid)),
-        getDoc(doc(db, 'viewers', user.uid))
-      ]);
-
-      if (!creatorSnap.exists() && !viewerSnap.exists()) {
-        // New user - create user doc for rewards
-        await setDoc(doc(db, 'users', user.uid), {
-          email: user.email,
+      // Check if user exists in either collection (original pattern)
+      const userRef = doc(db, isCreator ? 'creators' : 'viewers', user.uid);
+      const snap = await getDoc(userRef);
+      
+      if (!snap.exists()) {
+        // New user - create simple profile (original pattern)
+        await setDoc(userRef, {
+          uid: user.uid,
+          email: user.email || '',
+          firstName: user.displayName?.split(' ')[0] || '',
+          lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
           createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString(),
-          displayName: user.displayName,
-          role: isCreator ? 'creator' : 'viewer'
-        }, { merge: true });
-        // Redirect to complete profile
-        navigate('/complete-profile', { state: { isCreator } });
-      } else {
-        // Existing user - update lastLogin
-        await setDoc(doc(db, 'users', user.uid), {
-          lastLogin: new Date().toISOString(),
-        }, { merge: true });
-        navigate('/dashboard');
+        });
       }
+      
+      navigate('/dashboard');
     } catch (err: any) {
       alert(err.message || 'Google sign-in failed.');
     }

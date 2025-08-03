@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Template Diagnostic</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .template { border: 1px solid #ccc; margin: 10px 0; padding: 10px; }
+        .firebase-storage { background-color: #e8f5e8; }
+        .local-video { background-color: #fff3cd; }
+        .no-video { background-color: #f8d7da; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>ViewsBoost Template Diagnostic</h1>
+    <button onclick="loadTemplates()">Load Templates</button>
+    <div id="results"></div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDUYmZZJHOPJJCEVxlKJXUJRNYdkjjzjgc",
+            authDomain: "viewsboost-c3e8a.firebaseapp.com",
+            projectId: "viewsboost-c3e8a",
+            storageBucket: "viewsboost-c3e8a.appspot.com",
+            messagingSenderId: "1085527619831",
+            appId: "1:1085527619831:web:f4c0b5a1a4a8d7e8c5e8a1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.loadTemplates = async function() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Loading templates...</p>';
+
+            try {
+                const snapshot = await getDocs(collection(db, 'templates'));
+                const templates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                let html = `<h2>Found ${templates.length} templates</h2>`;
+                
+                // Analyze video sources
+                const analysis = {
+                    total: templates.length,
+                    withVideoSource: 0,
+                    firebaseStorage: 0,
+                    localVideos: 0,
+                    blobUrls: 0,
+                    otherUrls: 0,
+                    noVideoSource: 0
+                };
+
+                templates.forEach(template => {
+                    if (template.videoSource) {
+                        analysis.withVideoSource++;
+                        if (template.videoSource.includes('firebase') || template.videoSource.includes('storage.googleapis.com')) {
+                            analysis.firebaseStorage++;
+                        } else if (template.videoSource.startsWith('/videos/')) {
+                            analysis.localVideos++;
+                        } else if (template.videoSource.startsWith('blob:')) {
+                            analysis.blobUrls++;
+                        } else {
+                            analysis.otherUrls++;
+                        }
+                    } else {
+                        analysis.noVideoSource++;
+                    }
+                });
+
+                html += `
+                    <div style="background: #f0f0f0; padding: 15px; margin: 10px 0;">
+                        <h3>Video Source Analysis</h3>
+                        <p>Total templates: ${analysis.total}</p>
+                        <p>With videoSource: ${analysis.withVideoSource}</p>
+                        <p>🔥 Firebase Storage URLs: ${analysis.firebaseStorage}</p>
+                        <p>📁 Local video paths: ${analysis.localVideos}</p>
+                        <p>🔗 Blob URLs: ${analysis.blobUrls}</p>
+                        <p>🌐 Other URLs: ${analysis.otherUrls}</p>
+                        <p>❌ No videoSource: ${analysis.noVideoSource}</p>
+                    </div>
+                `;
+
+                // Show templates with Firebase Storage URLs
+                const firebaseStorageTemplates = templates.filter(t => 
+                    t.videoSource && (t.videoSource.includes('firebase') || t.videoSource.includes('storage.googleapis.com'))
+                );
+
+                if (firebaseStorageTemplates.length > 0) {
+                    html += '<h3>🔥 Templates with Firebase Storage URLs</h3>';
+                    firebaseStorageTemplates.forEach(template => {
+                        html += `
+                            <div class="template firebase-storage">
+                                <h4>${template.title} (${template.category})</h4>
+                                <p><strong>Video Source:</strong> ${template.videoSource}</p>
+                                <p><strong>Preview:</strong> ${template.preview || 'None'}</p>
+                                <p><strong>Platform:</strong> ${template.platform || 'None'}</p>
+                            </div>
+                        `;
+                    });
+                }
+
+                // Show templates with local videos
+                const localVideoTemplates = templates.filter(t => 
+                    t.videoSource && t.videoSource.startsWith('/videos/')
+                );
+
+                if (localVideoTemplates.length > 0) {
+                    html += '<h3>📁 Templates with Local Video Paths</h3>';
+                    localVideoTemplates.forEach(template => {
+                        html += `
+                            <div class="template local-video">
+                                <h4>${template.title} (${template.category})</h4>
+                                <p><strong>Video Source:</strong> ${template.videoSource}</p>
+                                <p><strong>Preview:</strong> ${template.preview || 'None'}</p>
+                            </div>
+                        `;
+                    });
+                }
+
+                // Show templates without video sources
+                const noVideoTemplates = templates.filter(t => !t.videoSource);
+
+                if (noVideoTemplates.length > 0) {
+                    html += '<h3>❌ Templates without Video Sources</h3>';
+                    noVideoTemplates.slice(0, 10).forEach(template => {
+                        html += `
+                            <div class="template no-video">
+                                <h4>${template.title} (${template.category})</h4>
+                                <p><strong>Preview:</strong> ${template.preview || 'None'}</p>
+                                <p><strong>Platform:</strong> ${template.platform || 'None'}</p>
+                            </div>
+                        `;
+                    });
+                    if (noVideoTemplates.length > 10) {
+                        html += `<p>... and ${noVideoTemplates.length - 10} more templates without video sources</p>`;
+                    }
+                }
+
+                resultsDiv.innerHTML = html;
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="color: red;">Error loading templates: ${error.message}</p>`;
+                console.error('Error:', error);
+            }
+        };
+    </script>
+</body>
+</html> 

@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Search as SearchIcon, Download, Share, X } from "lucide-react";
 import { useTemplates } from "../lib/useTemplates";
 import { ImageService } from "../lib/services/imageService";
 import { useVideoPreview } from "../components/VideoPreviewExtractor";
+import ModernTemplateGrid from "../components/ModernTemplateGrid";
 // @ts-ignore
 import TemplatePreviewModal from "../components/TemplatePreviewModal";
 
@@ -17,18 +18,132 @@ function CategoryTemplates() {
   const decodedCategory = category ? decodeURIComponent(category) : "";
   
   // Fetch templates for this specific category
+  // Force Firestore loading to match admin panel data
   const { templates, loading } = useTemplates(decodedCategory);
 
-  // Add force Firestore reload function
-  const forceFirestoreReload = () => {
-    console.log(`🔄 [CategoryTemplates] Forcing cache invalidation for "${decodedCategory}"...`);
+  // CRITICAL FIX: Force initial Firestore sync to match admin panel
+  useEffect(() => {
+    console.log('🔄 [CategoryTemplates] Forcing initial Firestore sync to match admin panel');
     window.dispatchEvent(new CustomEvent('templatesUpdated', { 
-      detail: { 
-        source: 'manual-reload', 
-        timestamp: Date.now(),
-        categories: [decodedCategory]
-      } 
+      detail: { source: 'category-page-init', timestamp: Date.now() } 
     }));
+    
+    // NAVIGATION GUARD: Prevent accidental navigation to video URLs
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (window.location.pathname.includes('/videos/') && import.meta.env.DEV) {
+        console.warn('🚨 [CategoryTemplates] Navigation to video URL detected and prevented!');
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+    
+    const handlePopState = (e: PopStateEvent) => {
+      if (window.location.pathname.includes('/videos/')) {
+        console.warn('🚨 [CategoryTemplates] Video URL navigation detected, redirecting back');
+        e.preventDefault();
+        navigate(`/category/${encodeURIComponent(decodedCategory)}`, { replace: true });
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [decodedCategory, navigate]);
+
+  // ENHANCED: Listen for real-time template updates from admin panel
+  useEffect(() => {
+    const handleTemplateUpdate = (event: any) => {
+      const detail = event.detail || {};
+      console.log(`🔄 [CategoryTemplates] Received template update event:`, detail);
+      
+      // Force refresh for this specific category if it matches OR for any creation/deletion
+      const shouldRefresh = 
+        detail.category === decodedCategory || 
+        detail.action === 'delete' || 
+        detail.action === 'create' ||
+        detail.source?.includes('sync') ||
+        detail.comprehensive;
+        
+      if (shouldRefresh) {
+        console.log(`🔄 [CategoryTemplates] Template update affects "${decodedCategory}" - triggering AGGRESSIVE refresh`);
+        console.log(`🔄 [CategoryTemplates] Update details:`, {
+          action: detail.action,
+          source: detail.source,
+          category: detail.category,
+          templateId: detail.templateId,
+          templateCount: detail.templateCount
+        });
+        
+        // Multiple aggressive refresh attempts
+        forceFirestoreReload();
+        
+        // Secondary refresh after delay for Firestore propagation
+        setTimeout(() => {
+          console.log(`🔄 [CategoryTemplates] Secondary refresh for "${decodedCategory}"`);
+          forceFirestoreReload();
+        }, 1000);
+        
+        // Final refresh to ensure everything is synced
+        setTimeout(() => {
+          console.log(`🔄 [CategoryTemplates] Final refresh for "${decodedCategory}"`);
+          forceFirestoreReload();
+        }, 2000);
+      }
+    };
+
+    // Listen for ALL update events with high priority
+    const events = [
+      'templatesUpdated',
+      'templateDeleted', 
+      'templateCreated', 
+      'templateCacheInvalid', 
+      'globalTemplateSync',
+      'categoryUpdated'
+    ];
+    
+    events.forEach(eventType => {
+      window.addEventListener(eventType, handleTemplateUpdate);
+      console.log(`👂 [CategoryTemplates] Listening for ${eventType} events for "${decodedCategory}"`);
+    });
+
+    return () => {
+      events.forEach(eventType => {
+        window.removeEventListener(eventType, handleTemplateUpdate);
+      });
+    };
+  }, [decodedCategory]);
+
+  // Add AGGRESSIVE force Firestore reload function
+  const forceFirestoreReload = () => {
+    console.log(`🔄 [CategoryTemplates] Forcing AGGRESSIVE cache invalidation for "${decodedCategory}"...`);
+    
+    const reloadDetail = {
+      source: 'categorypage-manual-reload', 
+      timestamp: Date.now(),
+      categories: [decodedCategory],
+      category: decodedCategory,
+      action: 'force-reload',
+      forceReload: true,
+      immediate: true,
+      comprehensive: true
+    };
+    
+    // Dispatch multiple events for maximum coverage
+    const events = [
+      'templatesUpdated',
+      'templateCacheInvalid',
+      'globalTemplateSync'
+    ];
+    
+    events.forEach(eventType => {
+      window.dispatchEvent(new CustomEvent(eventType, { detail: reloadDetail }));
+      console.log(`📡 [CategoryTemplates] Dispatched ${eventType} for "${decodedCategory}"`);
+    });
   };
 
   // Add manual Firestore test function for debugging
@@ -146,36 +261,29 @@ function CategoryTemplates() {
     return "from-gray-400 to-gray-600";
   }
 
-  // Get video source based on template type (supports Envato premium videos)
+  // Get video source based on template type - NO FALLBACKS
   function getVideoSource(template: any) {
-    // If template has a videoSource (Envato premium), use it directly
-    if (template.videoSource) {
+    // Only use real video sources
+    if (template.videoSource && (
+      template.videoSource.startsWith('http') ||
+      template.videoSource.startsWith('blob:')
+    )) {
       return template.videoSource;
     }
-    
-    if (template.category === 'TikTok Video') {
-      if (template.title?.includes('Dance')) return '/videos/video1.mp4';
-      if (template.title?.includes('Workout') || template.title?.includes('Fitness')) return '/videos/video2.mp4';
-      if (template.title?.includes('Recipe') || template.title?.includes('Food')) return '/videos/video3.mp4';
-      if (template.title?.includes('Comedy')) return '/videos/video4.mp4';
-      if (template.title?.includes('Travel')) return '/videos/video5.mp4';
-      return '/videos/video6.mp4'; // Default for other TikTok templates
-    } else if (template.category === 'YouTube Video') {
-      // Map YouTube templates to dedicated videos
-      if (template.title?.includes('Gaming') || template.title?.includes('Neon')) return '/videos/youtube/gaming-neon.mp4';
-      if (template.title?.includes('Tutorial') || template.title?.includes('Clean')) return '/videos/youtube/tutorial-clean.mp4';
-      if (template.title?.includes('Reaction') || template.title?.includes('Shocked')) return '/videos/youtube/reaction-shocked.mp4';
-      if (template.title?.includes('Tech') || template.title?.includes('Sleek')) return '/videos/youtube/tech-sleek.mp4';
-      if (template.title?.includes('Cooking') || template.title?.includes('Recipe')) return '/videos/youtube/cooking-appetizing.mp4';
-      if (template.title?.includes('Fitness') || template.title?.includes('Workout')) return '/videos/youtube/fitness-motivational.mp4';
-      if (template.title?.includes('News') || template.title?.includes('Breaking')) return '/videos/youtube/news-breaking.mp4';
-      if (template.title?.includes('Lifestyle') || template.title?.includes('Vlog')) return '/videos/youtube/lifestyle-cozy.mp4';
-      if (template.title?.includes('Music') || template.title?.includes('Artistic')) return '/videos/youtube/music-artistic.mp4';
-      if (template.title?.includes('Comedy') || template.title?.includes('Funny')) return '/videos/youtube/comedy-funny.mp4';
-      return '/videos/youtube/gaming-neon.mp4'; // Default for other YouTube templates
-    }
+    // No fallback: return null
     return null;
   }
+
+  // Add helper function for template editor route - ALL ROUTES NOW USE STUDIO
+  const getTemplateEditorRoute = (template: any) => {
+    // Debug log
+    console.log('[ROUTE DEBUG][CategoryTemplates]', { template });
+
+    // All editor routes now point to Studio with template parameter
+    const route = `/studio?template=${encodeURIComponent(template.id || template.title)}`;
+    console.log('[ROUTE DEBUG][CategoryTemplates] Using Studio route:', route);
+    return route;
+  };
 
   function TemplateCard({ template }: { template: any }) {
     const [imageLoaded, setImageLoaded] = useState(false);
@@ -193,6 +301,30 @@ function CategoryTemplates() {
       template.useVideoPreview && videoSource ? videoSource : "", 
       1.5 // Extract frame at 1.5 seconds
     );
+
+    // DEBUG: Log template data for troubleshooting
+    React.useEffect(() => {
+      if (import.meta.env.DEV) {
+        console.log(`🔍 [TemplateCard] Template: "${template.title}"`, {
+          id: template.id,
+          category: template.category,
+          videoSource: template.videoSource,
+          preview: template.preview,
+          hasVideoSource: Boolean(template.videoSource),
+          videoSourceType: template.videoSource ? (
+            template.videoSource.includes('firebase') || template.videoSource.includes('storage.googleapis.com') ? 'FIREBASE_STORAGE' :
+            template.videoSource.startsWith('blob:') ? 'BLOB_URL' :
+            template.videoSource.startsWith('http') ? 'EXTERNAL_URL' :
+            template.videoSource.startsWith('/videos/') ? 'LOCAL_VIDEO' :
+            'OTHER'
+          ) : 'NONE',
+          actualVideoSource: videoSource,
+          useVideoPreview: template.useVideoPreview,
+          platform: template.platform,
+          allKeys: Object.keys(template)
+        });
+      }
+    }, [template, videoSource]);
 
     // Check if HIGH-RESOLUTION image loads successfully
     React.useEffect(() => {
@@ -277,9 +409,15 @@ function CategoryTemplates() {
         }
       : getTikTokFallbackBackground(template);
 
-    // Toggle video play/pause
+    // Toggle video play/pause - ENHANCED with better event handling
     const toggleVideoPlayback = (e: React.MouseEvent) => {
       e.stopPropagation(); // Prevent card click
+      e.preventDefault(); // Prevent any default behavior
+      
+      if (import.meta.env.DEV) {
+        console.log('🎥 [TemplateCard] Video toggle clicked for:', template.title);
+      }
+      
       if (videoRef) {
         if (isVideoPlaying) {
           videoRef.pause();
@@ -288,6 +426,20 @@ function CategoryTemplates() {
         }
         setIsVideoPlaying(!isVideoPlaying);
       }
+    };
+
+    // ENHANCED template card click handler - DIRECT EDITOR NAVIGATION
+    const handleTemplateClick = (e: React.MouseEvent) => {
+      e.preventDefault(); // Prevent any default navigation
+      e.stopPropagation(); // Stop event bubbling
+      
+      // Always store the FULL template object in sessionStorage
+      sessionStorage.setItem('selectedTemplate', JSON.stringify(template));
+      
+      // DIRECT EDITOR NAVIGATION - Get the appropriate editor route
+      const editorRoute = getTemplateEditorRoute(template);
+      // Navigate directly to the appropriate editor
+      navigate(editorRoute);
     };
 
     // Generate TikTok-specific fallback backgrounds
@@ -318,8 +470,20 @@ function CategoryTemplates() {
       return { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' };
     }
 
+    // If no video source, show a clear placeholder
+    if (!videoSource) {
+      return (
+        <div className="relative group rounded-2xl p-5 flex flex-col items-center justify-center min-h-[240px] bg-gray-900 text-gray-400 border border-dashed border-gray-600">
+          <span className="text-4xl mb-2">🚫</span>
+          <div className="text-lg font-bold mb-1">No video available</div>
+          <div className="text-sm">This template does not have a valid video source.</div>
+        </div>
+      );
+    }
+
     return (
       <div
+        data-testid="template-card"
         className="relative group rounded-2xl p-5 cursor-pointer transition-all overflow-hidden shadow-lg border border-transparent hover:border-yellow-400 hover:shadow-[0_4px_32px_0_rgba(255,214,10,0.15)] hover:scale-105"
         style={{
           minHeight: 240,
@@ -330,7 +494,7 @@ function CategoryTemplates() {
           position: "relative",
           ...backgroundStyle
         }}
-        onClick={() => setPreviewTemplate(template)}
+        onClick={handleTemplateClick}
         tabIndex={0}
         role="button"
       >
@@ -348,25 +512,51 @@ function CategoryTemplates() {
 
         {/* Video player for TikTok Video and YouTube Video templates */}
         {videoSource && (template.category === 'TikTok Video' || template.category === 'YouTube Video') ? (
-          <div className="absolute inset-0 w-full h-full rounded-2xl overflow-hidden" style={{ zIndex: 1 }}>
+          <div className="absolute inset-0 w-full h-full rounded-2xl overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
             <video
               ref={setVideoRef}
               src={videoSource}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover pointer-events-none"
               loop
               muted
               playsInline
+              preload="none"
               onPlay={() => setIsVideoPlaying(true)}
               onPause={() => setIsVideoPlaying(false)}
               onEnded={() => setIsVideoPlaying(false)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (import.meta.env.DEV) {
+                  console.log('🚫 [TemplateCard] Video element click prevented');
+                }
+              }}
+              onContextMenu={(e) => e.preventDefault()}
+              onDoubleClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
             />
             
             {/* Video controls overlay */}
             <div 
-              className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity"
+              className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity pointer-events-auto"
+              data-video-controls="true"
               onClick={toggleVideoPlayback}
             >
-              <button className="bg-black/60 hover:bg-black/80 text-white p-3 rounded-full transition-colors">
+              <button 
+                className="bg-black/60 hover:bg-black/80 text-white p-3 rounded-full transition-colors"
+                data-video-controls="true"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  toggleVideoPlayback(e);
+                }}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+              >
                 {isVideoPlaying ? (
                   <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
@@ -381,7 +571,7 @@ function CategoryTemplates() {
             </div>
 
             {/* Video indicator */}
-            <div className={`absolute top-2 left-2 text-white px-2 py-1 rounded text-xs font-bold flex items-center gap-1 ${
+            <div className={`absolute top-2 left-2 text-white px-2 py-1 rounded text-xs font-bold flex items-center gap-1 pointer-events-none ${
               template.category === 'TikTok Video' ? 'bg-[#ff0050]' : 'bg-[#ff0000]'
             }`} style={{ zIndex: 3 }}>
               {isVideoPlaying ? '⏸️' : '▶️'} {template.category === 'TikTok Video' ? 'TikTok' : 'YouTube'}
@@ -427,6 +617,40 @@ function CategoryTemplates() {
           <div className="absolute top-3 right-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1" style={{zIndex: 10}}>
             🔍 HD
           </div>
+                 )}
+         
+         {/* NEW: Video source type indicator */}
+         {videoSource && (
+           <div className="absolute top-3 left-3 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1" style={{
+             zIndex: 10,
+             backgroundColor: videoSource.includes('firebase') || videoSource.includes('storage.googleapis.com') ? '#10b981' : // Green for Firebase
+                             videoSource.startsWith('blob:') ? '#8b5cf6' : // Purple for blob
+                             videoSource.startsWith('http') ? '#3b82f6' : // Blue for external
+                             videoSource.startsWith('/videos/') ? '#f59e0b' : // Orange for local
+                             '#6b7280' // Gray for other
+           }}>
+             {videoSource.includes('firebase') || videoSource.includes('storage.googleapis.com') ? '🔥 FIREBASE' :
+              videoSource.startsWith('blob:') ? '🔗 BLOB' :
+              videoSource.startsWith('http') ? '🌐 EXTERNAL' :
+              videoSource.startsWith('/videos/') ? '📁 LOCAL' :
+              '❓ OTHER'}
+           </div>
+         )}
+        {videoSource && (
+          <div className="absolute top-3 left-3 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1" style={{
+            zIndex: 10,
+            backgroundColor: videoSource.includes('firebase') || videoSource.includes('storage.googleapis.com') ? '#10b981' : // Green for Firebase
+                            videoSource.startsWith('blob:') ? '#8b5cf6' : // Purple for blob
+                            videoSource.startsWith('http') ? '#3b82f6' : // Blue for external
+                            videoSource.startsWith('/videos/') ? '#f59e0b' : // Orange for local
+                            '#6b7280' // Gray for other
+          }}>
+            {videoSource.includes('firebase') || videoSource.includes('storage.googleapis.com') ? '🔥 FIREBASE' :
+             videoSource.startsWith('blob:') ? '🔗 BLOB' :
+             videoSource.startsWith('http') ? '🌐 EXTERNAL' :
+             videoSource.startsWith('/videos/') ? '📁 LOCAL' :
+             '❓ OTHER'}
+          </div>
         )}
         
         {/* Resolution indicator on hover */}
@@ -443,6 +667,8 @@ function CategoryTemplates() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#17171c] to-[#232438] text-white">
+
+      
       {/* Header */}
       <div className="w-full flex items-center px-6 py-4 bg-black/50 backdrop-blur-md border-b border-[#222]">
         <button
@@ -516,49 +742,52 @@ function CategoryTemplates() {
 
       {/* Content */}
       <div className="p-8">
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="text-2xl text-yellow-400">Loading templates...</div>
-          </div>
-        ) : filteredTemplates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="text-6xl mb-4 opacity-50">{getCategoryIcon(decodedCategory)}</div>
-            <h2 className="text-3xl font-bold text-gray-300 mb-2">
-              {searchQuery ? "No matching templates found" : "No templates available"}
-            </h2>
-            <p className="text-lg text-gray-400">
-              {searchQuery 
-                ? `Try adjusting your search for "${searchQuery}"` 
-                : `Import templates for the "${decodedCategory}" category to see them here.`
-              }
-            </p>
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="mt-4 px-6 py-2 bg-yellow-400 text-black rounded-lg font-semibold hover:bg-yellow-300 transition"
-              >
-                Clear Search
-              </button>
-            )}
-          </div>
-        ) : (
-          <>
-            {/* Category Header */}
-            <div className="mb-8">
-              <div className={`inline-flex items-center gap-3 px-6 py-3 rounded-full text-white font-bold text-lg bg-gradient-to-r ${getCategoryColor(decodedCategory)} shadow-lg`}>
-                <span className="text-2xl">{getCategoryIcon(decodedCategory)}</span>
-                {decodedCategory} Templates
-              </div>
-            </div>
-
-            {/* Templates Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {filteredTemplates.map((template, index) => (
-                <TemplateCard key={template.id || `${template.title}-${index}`} template={template} />
-              ))}
-            </div>
-          </>
-        )}
+        <ModernTemplateGrid
+          templates={filteredTemplates.map(template => ({
+            id: template.id || `${template.title}-${template.category}`,
+            title: template.title,
+            category: template.category,
+            desc: template.desc || template.description,
+            preview: template.preview,
+            videoSource: getVideoSource(template),
+            icon: template.icon,
+            platform: template.platform,
+            quality: template.quality,
+            tags: template.tags || [],
+            isPremium: template.isPremium || false,
+            isNew: template.isNew || false,
+            isTrending: template.isTrending || false,
+            likes: template.likes || Math.floor(Math.random() * 1000),
+            views: template.views || Math.floor(Math.random() * 10000),
+            duration: template.duration || '0:30',
+            aspectRatio: template.aspectRatio || (template.category?.toLowerCase().includes('short') ? '9:16' : '16:9'),
+            creator: template.creator || { name: 'ViewsBoost', avatar: '/images/viewsboost-logo.png' }
+          }))}
+          onTemplateSelect={(template) => {
+            console.log('🎯 [CategoryTemplates] Template selected:', template);
+            const originalTemplate = templates.find(t => t.id === template.id || t.title === template.title);
+            console.log('🔍 [CategoryTemplates] Original template found:', originalTemplate);
+            if (originalTemplate) {
+              // Store the template in sessionStorage for the editor
+              sessionStorage.setItem('selectedTemplate', JSON.stringify(originalTemplate));
+              const route = getTemplateEditorRoute(originalTemplate);
+              console.log('🚀 [CategoryTemplates] Navigating to route:', route);
+              navigate(route);
+            } else {
+              console.error('❌ [CategoryTemplates] Original template not found for:', template);
+            }
+          }}
+          onTemplatePreview={(template) => {
+            const originalTemplate = templates.find(t => t.id === template.id || t.title === template.title);
+            if (originalTemplate) {
+              setPreviewTemplate(originalTemplate);
+            }
+          }}
+          loading={loading}
+          category={decodedCategory}
+          viewMode="grid"
+          showFilters={false} // We already have search in the header
+        />
       </div>
 
       {/* Template Preview Modal */}
@@ -567,6 +796,25 @@ function CategoryTemplates() {
         template={previewTemplate}
         onClose={() => setPreviewTemplate(null)}
       />
+      
+      {/* DEBUG: Template Click Test Component (DEV ONLY) */}
+      {import.meta.env.DEV && previewTemplate && (
+        <div className="fixed bottom-4 right-4 bg-green-900/90 border border-green-400 rounded-lg p-4 text-white text-sm max-w-md z-[10001]">
+          <div className="font-bold text-green-400 mb-2">✅ Template Click Test PASSED</div>
+          <div>
+            <strong>Template:</strong> {previewTemplate.title}<br/>
+            <strong>Category:</strong> {previewTemplate.category}<br/>
+            <strong>Has Video:</strong> {previewTemplate.videoSource ? 'Yes' : 'No'}<br/>
+            <strong>Modal Opened:</strong> Successfully
+          </div>
+          <button 
+            onClick={() => setPreviewTemplate(null)}
+            className="mt-2 px-2 py-1 bg-green-600 hover:bg-green-700 rounded text-xs"
+          >
+            Close Test
+          </button>
+        </div>
+      )}
     </div>
   );
 }
