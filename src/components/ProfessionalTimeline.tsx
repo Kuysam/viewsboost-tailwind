@@ -214,9 +214,11 @@ export const ProfessionalTimeline: React.FC<ProfessionalTimelineProps> = React.m
     if (isPlaying) {
       pause();
       setIsPlaying(false);
+      try { (window as any).__viewsboost_video_controls?.pause(); } catch {}
     } else {
       play();
       setIsPlaying(true);
+      try { (window as any).__viewsboost_video_controls?.play(); } catch {}
     }
   }, [isPlaying, play, pause]);
 
@@ -228,11 +230,13 @@ export const ProfessionalTimeline: React.FC<ProfessionalTimelineProps> = React.m
   const handleSkipBack = useCallback(() => {
     const newTime = Math.max(0, currentTime - 1);
     setPlayheadPosition(newTime);
+    try { (window as any).__viewsboost_video_controls?.seek(newTime); } catch {}
   }, [currentTime, setPlayheadPosition]);
 
   const handleSkipForward = useCallback(() => {
     const newTime = Math.min(totalDuration, currentTime + 1);
     setPlayheadPosition(newTime);
+    try { (window as any).__viewsboost_video_controls?.seek(newTime); } catch {}
   }, [currentTime, totalDuration, setPlayheadPosition]);
 
   // Enhanced scrubbing functionality
@@ -245,6 +249,7 @@ export const ProfessionalTimeline: React.FC<ProfessionalTimelineProps> = React.m
     if (isPlaying) {
       pause();
     }
+    try { (window as any).__viewsboost_video_controls?.pause(); } catch {}
   }, [isPlaying, pause]);
 
   const handleScrubEnd = useCallback(() => {
@@ -253,7 +258,12 @@ export const ProfessionalTimeline: React.FC<ProfessionalTimelineProps> = React.m
       // Small delay to prevent audio pops
       setTimeout(() => play(), 100);
     }
-  }, [wasPlayingBeforeScrub, play]);
+    try {
+      const t = currentTime;
+      (window as any).__viewsboost_video_controls?.seek(t);
+      if (wasPlayingBeforeScrub) (window as any).__viewsboost_video_controls?.play();
+    } catch {}
+  }, [wasPlayingBeforeScrub, play, currentTime]);
 
   const handleMouseScrub = useCallback((event: React.MouseEvent) => {
     if (event.buttons === 1) { // Left mouse button held
@@ -262,6 +272,7 @@ export const ProfessionalTimeline: React.FC<ProfessionalTimelineProps> = React.m
       const percentage = Math.max(0, Math.min(1, x / rect.width));
       const newTime = percentage * totalDuration;
       setPlayheadPosition(newTime);
+      try { (window as any).__viewsboost_video_controls?.seek(newTime); } catch {}
     }
   }, [totalDuration, setPlayheadPosition]);
 
@@ -451,7 +462,7 @@ export const ProfessionalTimeline: React.FC<ProfessionalTimelineProps> = React.m
             </button>
           </div>
 
-          {/* Enhanced Time Display with Scrub Bar */}
+          {/* Enhanced Time Display with Scrub Bar and Zoom Slider */}
           <div className="flex items-center space-x-4">
             <div className="bg-black px-3 py-1 rounded text-green-400 font-mono text-sm min-w-[80px] text-center">
               {formatTime(currentTime)}
@@ -567,13 +578,32 @@ export const ProfessionalTimeline: React.FC<ProfessionalTimelineProps> = React.m
                 Fit
               </button>
             </div>
+
+            {/* Zoom slider (like Canva bottom-right) */}
+            <div className="flex items-center space-x-2 ml-4">
+              <ZoomOut className="w-3.5 h-3.5 text-white" />
+              <input
+                type="range"
+                min={0}
+                max={zoomLevels.length - 1}
+                step={1}
+                value={currentZoomIndex}
+                onChange={(e) => {
+                  const idx = Number(e.target.value);
+                  setCurrentZoomIndex(idx);
+                  setZoom(zoomLevels[idx]);
+                }}
+                className="w-32"
+              />
+              <ZoomIn className="w-3.5 h-3.5 text-white" />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Track Labels and Timeline */}
       <div className="flex">
-        {/* Track Labels - Modern 4-track design */}
+        {/* Track Labels - default only Video. Audio will appear when user adds it from sidebar */}
         <div className="w-32 bg-gray-800 border-r border-gray-700">
           <div className="h-12 bg-gray-750 border-b border-gray-600 flex items-center px-3">
             <span className="text-white text-xs font-bold tracking-wide">TRACKS</span>
@@ -581,9 +611,6 @@ export const ProfessionalTimeline: React.FC<ProfessionalTimelineProps> = React.m
           <div className="space-y-0">
             {[
               { label: 'Video', icon: Video, color: 'blue', bgColor: 'bg-slate-800' },
-              { label: 'Audio', icon: Music, color: 'teal', bgColor: 'bg-teal-900' },
-              { label: 'Text', icon: Type, color: 'purple', bgColor: 'bg-purple-900' },
-              { label: 'Graphics', icon: Shapes, color: 'orange', bgColor: 'bg-orange-900' }
             ].map(({ label, icon: Icon, color, bgColor }, index) => (
               <div
                 key={label}
@@ -604,6 +631,10 @@ export const ProfessionalTimeline: React.FC<ProfessionalTimelineProps> = React.m
                 </div>
               </div>
             ))}
+            {/* Placeholder for Audio track instruction */}
+            <div className="h-[80px] border-b border-gray-700 flex items-center px-3 bg-gray-900/40">
+              <span className="text-gray-400 text-[11px]">Add Audio from sidebar to create an audio track</span>
+            </div>
           </div>
         </div>
 
@@ -637,8 +668,22 @@ export const ProfessionalTimeline: React.FC<ProfessionalTimelineProps> = React.m
           </div>
         </div>
         
-        {/* Mini Timeline */}
-        <div className="relative h-8 bg-gray-900 rounded-md overflow-hidden">
+        {/* Mini Timeline (scrubbable overview) */}
+        <div
+          className="relative h-8 bg-gray-900 rounded-md overflow-hidden cursor-pointer"
+          onMouseDown={(e) => {
+            const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+            const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            setPlayheadPosition(pct * Math.max(totalDuration, 0));
+          }}
+          onMouseMove={(e) => {
+            if (e.buttons === 1) {
+              const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+              const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+              setPlayheadPosition(pct * Math.max(totalDuration, 0));
+            }
+          }}
+        >
           {/* Timeline background */}
           <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900"></div>
           

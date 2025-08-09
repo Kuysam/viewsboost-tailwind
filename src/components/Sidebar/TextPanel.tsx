@@ -2,9 +2,15 @@ import React, { useState } from 'react';
 import { fabric } from 'fabric';
 import { 
   Type, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
-  Plus, Palette, ChevronDown
+  Plus, Palette, ChevronDown, Trash2
 } from 'lucide-react';
 import { useEditorStore } from '../../store/editorStore';
+
+interface TextPanelProps {
+  selectedObject?: fabric.Object | null;
+  onAddText?: () => void;
+  onDelete?: () => void;
+}
 
 interface TextPreset {
   id: string;
@@ -77,7 +83,7 @@ const fontFamilies = [
   'Inter', 'Roboto', 'Poppins', 'Montserrat', 'Open Sans'
 ];
 
-const TextPanel: React.FC = () => {
+const TextPanel: React.FC<TextPanelProps> = ({ selectedObject, onAddText, onDelete }) => {
   const { canvas, selectedObjectIds } = useEditorStore();
   const [activeColor, setActiveColor] = useState('#000000');
   const [showFontDropdown, setShowFontDropdown] = useState(false);
@@ -192,8 +198,8 @@ const TextPanel: React.FC = () => {
     applyTextFormatting('fill', color);
   };
 
-  const selectedObject = canvas?.getActiveObject();
-  const isTextSelected = selectedObject && selectedObject instanceof fabric.IText;
+  const canvasSelectedObject = canvas?.getActiveObject();
+  const isTextSelected = canvasSelectedObject && canvasSelectedObject instanceof fabric.IText;
 
   return (
     <div className="p-4 space-y-6">
@@ -202,7 +208,7 @@ const TextPanel: React.FC = () => {
         
         {/* Add Text Button */}
         <button
-          onClick={addCustomText}
+          onClick={onAddText || addCustomText}
           className="w-full bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors mb-4 flex items-center justify-center gap-2"
         >
           <Plus size={18} />
@@ -273,7 +279,7 @@ const TextPanel: React.FC = () => {
             <button
               onClick={toggleBold}
               className={`p-2 rounded ${
-                (selectedObject as fabric.IText)?.fontWeight === 'bold' 
+                (canvasSelectedObject as fabric.IText)?.fontWeight === 'bold' 
                   ? 'bg-blue-100 text-blue-600' 
                   : 'bg-gray-100 hover:bg-gray-200'
               }`}
@@ -284,7 +290,7 @@ const TextPanel: React.FC = () => {
             <button
               onClick={toggleItalic}
               className={`p-2 rounded ${
-                (selectedObject as fabric.IText)?.fontStyle === 'italic' 
+                (canvasSelectedObject as fabric.IText)?.fontStyle === 'italic' 
                   ? 'bg-blue-100 text-blue-600' 
                   : 'bg-gray-100 hover:bg-gray-200'
               }`}
@@ -295,7 +301,7 @@ const TextPanel: React.FC = () => {
             <button
               onClick={toggleUnderline}
               className={`p-2 rounded ${
-                (selectedObject as fabric.IText)?.underline 
+                (canvasSelectedObject as fabric.IText)?.underline 
                   ? 'bg-blue-100 text-blue-600' 
                   : 'bg-gray-100 hover:bg-gray-200'
               }`}
@@ -310,7 +316,7 @@ const TextPanel: React.FC = () => {
             <button
               onClick={() => setTextAlign('left')}
               className={`p-2 rounded ${
-                (selectedObject as fabric.IText)?.textAlign === 'left' 
+                (canvasSelectedObject as fabric.IText)?.textAlign === 'left' 
                   ? 'bg-blue-100 text-blue-600' 
                   : 'bg-gray-100 hover:bg-gray-200'
               }`}
@@ -321,7 +327,7 @@ const TextPanel: React.FC = () => {
             <button
               onClick={() => setTextAlign('center')}
               className={`p-2 rounded ${
-                (selectedObject as fabric.IText)?.textAlign === 'center' 
+                (canvasSelectedObject as fabric.IText)?.textAlign === 'center' 
                   ? 'bg-blue-100 text-blue-600' 
                   : 'bg-gray-100 hover:bg-gray-200'
               }`}
@@ -332,7 +338,7 @@ const TextPanel: React.FC = () => {
             <button
               onClick={() => setTextAlign('right')}
               className={`p-2 rounded ${
-                (selectedObject as fabric.IText)?.textAlign === 'right' 
+                (canvasSelectedObject as fabric.IText)?.textAlign === 'right' 
                   ? 'bg-blue-100 text-blue-600' 
                   : 'bg-gray-100 hover:bg-gray-200'
               }`}
@@ -361,6 +367,57 @@ const TextPanel: React.FC = () => {
               />
             </div>
           </div>
+
+          {/* Direct Text Editing (from CanvasEditor) */}
+          {selectedObject && selectedObject.type === 'textbox' && (
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg border">
+              <h5 className="text-sm font-medium text-gray-700 mb-2">Quick Edit</h5>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  className="w-full p-2 border border-gray-300 rounded text-sm"
+                  value={(selectedObject as fabric.Textbox).text || ""}
+                  onChange={(e) => {
+                    (selectedObject as fabric.Textbox).set("text", e.target.value);
+                    canvas?.renderAll();
+                  }}
+                  placeholder="Edit text..."
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    className="w-16 h-8 border border-gray-300 rounded cursor-pointer"
+                    value={(selectedObject as fabric.Textbox).fill as string || '#000000'}
+                    onChange={(e) => {
+                      (selectedObject as fabric.Textbox).set("fill", e.target.value);
+                      canvas?.renderAll();
+                    }}
+                  />
+                  <input
+                    type="range"
+                    min={12}
+                    max={72}
+                    className="flex-1"
+                    value={(selectedObject as fabric.Textbox).fontSize || 16}
+                    onChange={(e) => {
+                      (selectedObject as fabric.Textbox).set("fontSize", Number(e.target.value));
+                      canvas?.renderAll();
+                    }}
+                  />
+                  <span className="text-xs text-gray-500 w-8">{(selectedObject as fabric.Textbox).fontSize || 16}px</span>
+                </div>
+                {onDelete && (
+                  <button
+                    onClick={onDelete}
+                    className="w-full py-2 bg-red-500 text-white text-sm font-medium rounded hover:bg-red-600 transition flex items-center justify-center gap-1"
+                  >
+                    <Trash2 size={14} />
+                    Delete Text
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

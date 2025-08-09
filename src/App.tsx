@@ -183,6 +183,12 @@ export default function App() {
             }
           />
 
+          {/* ---- Canvas Editor Test Route - Redirects to Studio ---- */}
+          <Route
+            path="/canvas-editor"
+            element={<Navigate to="/studio" replace />}
+          />
+
           {/* Category Templates Route - Lazy loaded */}
           <Route
             path="/category/:category"

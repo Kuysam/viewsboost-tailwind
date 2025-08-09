@@ -82,6 +82,19 @@ export class TimelineEngine {
     offsetX: number;
     offsetY: number;
   } | null = null;
+
+  // Resize state
+  private isResizing: boolean = false;
+  private resizeData: {
+    clip: TimelineClip;
+    mode: 'left' | 'right';
+    startX: number;
+    originalStart: number;
+    originalDuration: number;
+  } | null = null;
+
+  // Tooltip for time display during resize
+  private tooltip: PIXI.Text | null = null;
   
   // Magnetic snapping configuration
   private snapEnabled: boolean = true;
@@ -217,12 +230,9 @@ export class TimelineEngine {
   }
 
   private createTracks(): void {
-    // Modern multi-track support with 4 track types
+    // Only Video track by default. Audio track can be added later from sidebar.
     const trackTypes = [
       { type: 'video', color: this.config.trackColors.video },
-      { type: 'audio', color: this.config.trackColors.audio },
-      { type: 'text', color: this.config.trackColors.text },
-      { type: 'graphics', color: this.config.trackColors.graphics }
     ] as const;
     
     trackTypes.forEach((trackConfig, index) => {
@@ -347,11 +357,48 @@ export class TimelineEngine {
       if (bounds.contains(globalPos.x, globalPos.y)) {
         const clip = this.clips.get(clipId)!;
         this.selectClip(clip);
-        
+
+        // Option/Alt-drag duplicate
+        const altPressed = (event.data.originalEvent as any)?.altKey;
+        let targetClip = clip;
+        if (altPressed) {
+          const clone: TimelineClip = { ...clip, id: `${clip.id}_copy_${Date.now()}`, startTime: clip.startTime + 0.1 };
+          this.addClip(clone);
+          targetClip = clone;
+        }
+
+        // Detect edge resize (8px area)
+        const localX = globalPos.x - bounds.x;
+        const edgeZone = 8;
+        if (localX <= edgeZone) {
+          this.isResizing = true;
+          this.resizeData = {
+            clip: targetClip,
+            mode: 'left',
+            startX: globalPos.x,
+            originalStart: targetClip.startTime,
+            originalDuration: targetClip.duration,
+          };
+          this.showTooltip(globalPos.x, bounds.y - 18, targetClip.startTime, targetClip.duration);
+          return;
+        }
+        if (localX >= bounds.width - edgeZone) {
+          this.isResizing = true;
+          this.resizeData = {
+            clip: targetClip,
+            mode: 'right',
+            startX: globalPos.x,
+            originalStart: targetClip.startTime,
+            originalDuration: targetClip.duration,
+          };
+          this.showTooltip(globalPos.x, bounds.y - 18, targetClip.startTime, targetClip.duration);
+          return;
+        }
+
         // Start dragging
         this.isDragging = true;
         this.dragData = {
-          clip,
+          clip: targetClip,
           startX: globalPos.x,
           startY: globalPos.y,
           offsetX: globalPos.x - bounds.x,
@@ -366,6 +413,39 @@ export class TimelineEngine {
   }
 
   private onPointerMove(event: PIXI.FederatedPointerEvent): void {
+    if (this.isResizing && this.resizeData) {
+      const globalPos = event.data.global;
+      const dx = globalPos.x - this.resizeData.startX;
+      const deltaSeconds = dx / this.config.timeScale;
+      const clip = this.resizeData.clip;
+      const clipGraphic = this.clipGraphics.get(clip.id);
+      if (!clipGraphic) return;
+
+      let newStart = this.resizeData.originalStart;
+      let newDuration = this.resizeData.originalDuration;
+
+      if (this.resizeData.mode === 'left') {
+        newStart = Math.max(0, this.resizeData.originalStart + deltaSeconds);
+        const endTime = this.resizeData.originalStart + this.resizeData.originalDuration;
+        newDuration = Math.max(0.1, endTime - newStart);
+      } else {
+        newDuration = Math.max(0.1, this.resizeData.originalDuration + deltaSeconds);
+      }
+
+      const snapped = this.getSnappedTime(newStart, clip.id);
+      if (snapped && this.resizeData.mode === 'left') {
+        newStart = snapped.time;
+        newDuration = Math.max(0.1, (this.resizeData.originalStart + this.resizeData.originalDuration) - newStart);
+      }
+
+      clipGraphic.x = newStart * this.config.timeScale;
+      const newWidth = newDuration * this.config.timeScale;
+      clipGraphic.width = Math.max(10, newWidth);
+
+      this.showTooltip(globalPos.x, clipGraphic.getBounds().y - 18, newStart, newDuration);
+      return;
+    }
+
     if (!this.isDragging || !this.dragData) return;
 
     const globalPos = event.data.global;
@@ -396,6 +476,20 @@ export class TimelineEngine {
   }
 
   private onPointerUp(): void {
+    if (this.isResizing && this.resizeData) {
+      const clipGraphic = this.clipGraphics.get(this.resizeData.clip.id);
+      if (clipGraphic) {
+        const newStartTime = clipGraphic.x / this.config.timeScale;
+        const newDuration = Math.max(0.1, clipGraphic.width / this.config.timeScale);
+        this.resizeData.clip.startTime = newStartTime;
+        this.resizeData.clip.duration = newDuration;
+        this.events.onClipResize(this.resizeData.clip, newDuration);
+      }
+      this.isResizing = false;
+      this.resizeData = null;
+      this.hideTooltip();
+    }
+
     if (this.isDragging && this.dragData) {
       const clipGraphic = this.clipGraphics.get(this.dragData.clip.id);
       if (clipGraphic) {
@@ -595,6 +689,19 @@ export class TimelineEngine {
     background.beginFill(0xffffff, 0.1);
     background.drawRoundedRect(0, 4, width, 2, borderRadius);
     background.endFill();
+
+    // Add resize handles
+    const handleWidth = 4;
+    const left = new PIXI.Graphics();
+    left.beginFill(0xffffff, 0.8);
+    left.drawRoundedRect(0, 4, handleWidth, height, 2);
+    left.endFill();
+    const right = new PIXI.Graphics();
+    right.beginFill(0xffffff, 0.8);
+    right.drawRoundedRect(width - handleWidth, 4, handleWidth, height, 2);
+    right.endFill();
+    background.addChild(left);
+    background.addChild(right);
   }
 
   private createAudioClip(background: PIXI.Graphics, container: PIXI.Container, clip: TimelineClip, width: number, height: number, borderRadius: number): void {
@@ -759,6 +866,28 @@ export class TimelineEngine {
   private recreateClipGraphic(clip: TimelineClip): void {
     this.removeClip(clip.id);
     this.createClipGraphic(clip);
+  }
+
+  private showTooltip(x: number, y: number, start: number, duration: number): void {
+    const text = `Start ${start.toFixed(2)}s • Dur ${duration.toFixed(2)}s`;
+    if (!this.tooltip) {
+      this.tooltip = new PIXI.Text(text, {
+        fontFamily: 'Inter, sans-serif', fontSize: 11, fill: 0xffffff,
+        stroke: 0x000000, strokeThickness: 3
+      });
+      this.playheadContainer.addChild(this.tooltip);
+    }
+    this.tooltip.text = text;
+    this.tooltip.x = x + 8;
+    this.tooltip.y = y;
+  }
+
+  private hideTooltip(): void {
+    if (this.tooltip) {
+      this.playheadContainer.removeChild(this.tooltip);
+      this.tooltip.destroy();
+      this.tooltip = null;
+    }
   }
 
   private selectClip(clip: TimelineClip): void {

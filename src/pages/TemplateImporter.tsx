@@ -296,23 +296,35 @@ const TemplateImporter: React.FC = () => {
       imageSource: template.imageSource || template.videoSource || template.preview,
       videoSource: template.videoSource || template.imageSource || template.preview,
       
-      // ✅ ENHANCED: Use TikTok-style optimized preview URL generation
+      // ✅ ENHANCED: Use proper preview URL generation preserving video URLs
       preview: (() => {
         // First, determine the source for preview generation
         const sourceForPreview = template.imageSource || template.videoSource || template.preview;
         
         if (sourceForPreview) {
           if (sourceForPreview.startsWith('http')) {
-            // External URL - use ImageService for optimization (same as TikTok templates)
-            return ImageService.getOptimizedImageUrl(sourceForPreview, 1200, 900, 'high');
+            // External URL - preserve videos, optimize images
+            if (template.videoSource && sourceForPreview === template.videoSource) {
+              // ✅ FIX: Preserve video URLs from Firebase Storage as-is
+              return sourceForPreview;
+            } else {
+              // Image optimization for non-video sources
+              return ImageService.getOptimizedImageUrl(sourceForPreview, 1200, 900, 'high');
+            }
           } else {
-            // Local filename - convert to /images/ path
+            // Local filename - convert to /images/ path (only for images)
             return `/images/${sourceForPreview}`;
           }
         } else if (template.preview) {
           if (template.preview.startsWith('http')) {
-            // External preview URL - optimize it
-            return ImageService.getOptimizedImageUrl(template.preview, 1200, 900, 'high');
+            // External preview URL - check if it's a video
+            if (template.videoSource && template.preview === template.videoSource) {
+              // Preserve video preview URLs
+              return template.preview;
+            } else {
+              // Optimize image preview URLs
+              return ImageService.getOptimizedImageUrl(template.preview, 1200, 900, 'high');
+            }
           } else {
             // Local preview filename
             return `/images/${template.preview}`;

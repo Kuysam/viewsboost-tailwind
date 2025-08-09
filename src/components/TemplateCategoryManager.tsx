@@ -504,13 +504,19 @@ export default function TemplateCategoryManager({ onTemplateUpdated, onCategoryU
           const sourceForPreview = template.imageSource || template.videoSource;
           if (sourceForPreview) {
             if (sourceForPreview.startsWith('http')) {
-              // External URL - use ImageService for optimization (same as TikTok templates)
-              template.preview = ImageService.getOptimizedImageUrl(sourceForPreview, 1200, 900, 'high');
+              // External URL - use as-is for videos, optimize for images
+              if (template.videoSource && sourceForPreview === template.videoSource) {
+                // ✅ FIX: Preserve video URLs from Firebase Storage as-is
+                template.preview = sourceForPreview;
+              } else {
+                // Image optimization for non-video sources
+                template.preview = ImageService.getOptimizedImageUrl(sourceForPreview, 1200, 900, 'high');
+              }
             } else {
-              // Local filename - convert to /images/ path
+              // Local filename - convert to /images/ path (only for images)
               template.preview = `/images/${sourceForPreview}`;
             }
-            console.log(`🎨 [TikTok Preview] Generated preview for ${template.title}: ${template.preview}`);
+            console.log(`🎨 [Preview] Generated preview for ${template.title}: ${template.preview}`);
           }
         }
         
@@ -1867,17 +1873,23 @@ export default function TemplateCategoryManager({ onTemplateUpdated, onCategoryU
               firestoreTemplate.imageSource = template.imageSource;
             }
             
-            // ✅ ENHANCED: Apply TikTok-style preview URL optimization for Firestore sync
+            // ✅ ENHANCED: Apply proper preview URL optimization for Firestore sync
             const sourceForPreview = template.imageSource || template.videoSource || template.preview;
             if (sourceForPreview && sourceForPreview !== '/default-template.png') {
               if (sourceForPreview.startsWith('http')) {
-                // External URL - use ImageService for optimization (same as TikTok templates)
-                firestoreTemplate.preview = ImageService.getOptimizedImageUrl(sourceForPreview, 1200, 900, 'high');
+                // External URL - preserve videos, optimize images
+                if (template.videoSource && sourceForPreview === template.videoSource) {
+                  // ✅ FIX: Preserve video URLs from Firebase Storage as-is
+                  firestoreTemplate.preview = sourceForPreview;
+                } else {
+                  // Image optimization for non-video sources
+                  firestoreTemplate.preview = ImageService.getOptimizedImageUrl(sourceForPreview, 1200, 900, 'high');
+                }
               } else if (sourceForPreview.startsWith('/images/')) {
                 // Already optimized local path
                 firestoreTemplate.preview = sourceForPreview;
               } else {
-                // Local filename - convert to /images/ path
+                // Local filename - convert to /images/ path (only for images)
                 firestoreTemplate.preview = `/images/${sourceForPreview}`;
               }
             } else {

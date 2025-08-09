@@ -1,0 +1,32 @@
+---
+description: 
+globs: **/*.c,**/*.cpp,**/*.h,**/*.hpp,**/*.cxx,CMakeLists.txt,*.cmake,conanfile.txt,Makefil,**/*.cc
+globs: **/*.c,**/*.cpp,**/*.h,**/*.hpp,**/*.cxx,CMakeLists.txt,*.cmake,conanfile.txt,Makefile,**/*.cc
+alwaysApply: false
+---
+# C++ Programming Guidelines
+
+## Basic Principles
+
+- Use English for all code and documentation.
+- Always declare the type of each variable and function (parameters and return value).
+- Create necessary types and classes.
+- Use Doxygen style comments to document public classes and methods.
+- Don't leave blank lines within a function.
+- Follow the one-definition rule (ODR).
+
+## Nomenclature
+
+- Use PascalCase for classes and structures.
+- Use camelCase for variables, functions, and methods.
+- Use ALL_CAPS for constants and macros.
+- Use snake_case for file and directory names.
+- Use UPPERCASE for environment variables.
+- Avoid magic numbers and define constants.
+- Start each function with a verb.
+- Use verbs for boolean variables. Example: isLoading, hasError, canDelete, etc.
+- Use complete words instead of abbreviations and ensure correct spelling.---
+description:
+globs:
+alwaysApply: false
+---

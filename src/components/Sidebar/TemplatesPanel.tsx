@@ -3,6 +3,7 @@ import { fabric } from 'fabric';
 import { Search, Grid3X3, List, Star, Heart, Eye, Download } from 'lucide-react';
 import { useTemplates } from '../../lib/useTemplates';
 import { useEditorStore } from '../../store/editorStore';
+import { FirebaseStorageMapper } from '../../lib/services/firebaseStorageMapper';
 
 interface Template {
   id: string;
@@ -54,19 +55,50 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ onSelectTemplate }) => 
     template.desc?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const [loadingTemplate, setLoadingTemplate] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const loadTemplate = async (template: Template) => {
-    console.log('Loading template:', template);
+    console.log('🎨 [TemplatesPanel] Loading template:', template);
+    
+    // ✅ VALIDATION: Check template data
+    if (!template) {
+      console.error('❌ [TemplatesPanel] No template provided');
+      setLoadError('Invalid template data');
+      return;
+    }
+    
+    if (!template.title) {
+      console.error('❌ [TemplatesPanel] Template missing title');
+      setLoadError('Template missing title');
+      return;
+    }
+
+    // Clear previous errors and set loading state
+    setLoadError(null);
+    setLoadingTemplate(template.id);
     
     // Call the parent's onSelectTemplate if provided (for Studio.tsx integration)
     if (onSelectTemplate) {
-      // Add missing properties for compatibility
-      const templateWithProps = {
-        ...template,
-        imageUrl: template.preview || template.imageUrl,
-        previewUrl: template.preview || template.previewUrl,
-        type: template.videoSource ? 'video' : 'image'
-      };
-      onSelectTemplate(templateWithProps);
+      try {
+        // For Studio.tsx integration, just pass the template - Studio will handle URL fixing
+        const templateWithProps = {
+          ...template,
+          // ✅ FIX: For video templates, don't pass incorrect image URLs
+          imageUrl: template.videoSource ? null : (template.preview || template.imageUrl),
+          previewUrl: template.videoSource ? null : (template.preview || template.previewUrl), 
+          videoSource: template.videoSource, // ✅ Pass videoSource for video templates
+          type: template.videoSource ? 'video' : 'image'
+        };
+        
+        await onSelectTemplate(templateWithProps);
+        setLoadingTemplate(null);
+        console.log('✅ [TemplatesPanel] Template passed to Studio successfully');
+      } catch (error) {
+        console.error('❌ [TemplatesPanel] Template loading failed:', error);
+        setLoadError('Failed to load template');
+        setLoadingTemplate(null);
+      }
       return;
     }
     
@@ -119,30 +151,48 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ onSelectTemplate }) => 
         const isVideo = imageUrl.includes('.mp4') || imageUrl.includes('.webm') || imageUrl.includes('.mov') || template.videoSource;
         
         if (isVideo && template.videoSource) {
-          // Handle video templates
+          // Handle video templates with proper Fabric.js implementation
           const video = document.createElement('video');
           video.src = template.videoSource;
           video.crossOrigin = 'anonymous';
           video.autoplay = false;
           video.loop = true;
           video.muted = true;
-          video.width = canvasWidth;
-          video.height = canvasHeight;
+          video.preload = 'metadata';
+          
+          video.onloadedmetadata = () => {
+            // Set video dimensions after metadata loads
+            video.width = video.videoWidth || canvasWidth;
+            video.height = video.videoHeight || canvasHeight;
+          };
           
           video.onloadeddata = () => {
             if (canvas && canvas.getElement && canvas.getElement()) {
               try {
+                // ✅ CRITICAL: objectCaching: false for video elements per Context7 docs
                 const videoObject = new fabric.Image(video, {
                   left: 0,
                   top: 0,
+                  originX: 'center',
+                  originY: 'center',
                   selectable: true,
                   evented: true,
+                  objectCaching: false, // ✅ CRITICAL: Required for video elements
+                  crossOrigin: 'anonymous', // ✅ CRITICAL: Required for CORS
                 });
                 
-                // Scale video to fit canvas
-                const scaleX = canvasWidth / video.videoWidth;
-                const scaleY = canvasHeight / video.videoHeight;
-                const scale = Math.min(scaleX, scaleY);
+                // Scale video to fit canvas while maintaining aspect ratio
+                const videoAspect = video.videoWidth / video.videoHeight;
+                const canvasAspect = canvasWidth / canvasHeight;
+                
+                let scale;
+                if (videoAspect > canvasAspect) {
+                  // Video is wider - fit to width
+                  scale = canvasWidth / video.videoWidth;
+                } else {
+                  // Video is taller - fit to height
+                  scale = canvasHeight / video.videoHeight;
+                }
                 
                 videoObject.set({
                   scaleX: scale,
@@ -151,23 +201,28 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ onSelectTemplate }) => 
                 
                 (videoObject as any).type = 'video';
                 (videoObject as any).id = `template-video-${Date.now()}`;
+                (videoObject as any).videoElement = video;
                 
                 canvas.add(videoObject);
                 canvas.centerObject(videoObject);
                 canvas.renderAll();
                 
-                // Play video
-                video.play();
+                // Start video playback
+                video.play().then(() => {
+                  console.log('✅ Video template loaded successfully in TemplatesPanel');
+                }).catch(error => {
+                  console.error('Error playing video:', error);
+                });
               } catch (error) {
                 console.error('Error adding video to canvas:', error);
               }
             }
           };
           
-          video.onerror = () => {
-            console.error('Error loading video template:', template.videoSource);
+          video.onerror = (error) => {
+            console.error('Error loading video template:', template.videoSource, error);
             // Fallback to preview image if video fails
-            if (template.preview) {
+            if (template.preview && !template.preview.includes('/images/')) {
               loadImageTemplate(template.preview, canvasWidth, canvasHeight);
             }
           };
@@ -177,19 +232,50 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ onSelectTemplate }) => 
         }
       }
       
-      // Helper function to load image templates
+      // Helper function to load image templates (fixed with proper error handling)
       function loadImageTemplate(imageUrl: string, width: number, height: number) {
-        fabric.Image.fromURL(imageUrl, (img) => {
-          if (img && canvas && canvas.getElement && canvas.getElement()) {
+        console.log('🖼️ [TemplatesPanel] Loading image from:', imageUrl);
+        
+        if (!imageUrl || !imageUrl.startsWith('http')) {
+          console.error('❌ [TemplatesPanel] Invalid image URL:', imageUrl);
+          return;
+        }
+        
+        // ✅ PROPER fabric.Image.fromURL usage (based on Context7 docs)
+        fabric.Image.fromURL(
+          imageUrl, 
+          (img, isError) => {
+            if (isError || !img) {
+              console.error('❌ [TemplatesPanel] Error loading image:', imageUrl, isError);
+              return;
+            }
+            
+            if (!canvas || !canvas.getElement || !canvas.getElement()) {
+              console.error('❌ [TemplatesPanel] Canvas not available');
+              return;
+            }
+            
             try {
-              // Scale image to fit canvas
-              const scaleX = width / (img.width || 1);
-              const scaleY = height / (img.height || 1);
-              const scale = Math.min(scaleX, scaleY);
+              console.log('✅ [TemplatesPanel] Image loaded, dimensions:', img.width, 'x', img.height);
+              
+              // Scale image to fit canvas while maintaining aspect ratio
+              const imageAspect = img.width / img.height;
+              const canvasAspect = width / height;
+              
+              let scale;
+              if (imageAspect > canvasAspect) {
+                // Image is wider - fit to width
+                scale = width / img.width;
+              } else {
+                // Image is taller - fit to height
+                scale = height / img.height;
+              }
               
               img.set({
-                left: 0,
-                top: 0,
+                left: width / 2,
+                top: height / 2,
+                originX: 'center',
+                originY: 'center',
                 scaleX: scale,
                 scaleY: scale,
                 selectable: false,
@@ -199,18 +285,17 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ onSelectTemplate }) => 
               canvas.setBackgroundImage(img, () => {
                 if (canvas.renderAll) {
                   canvas.renderAll();
+                  console.log('✅ [TemplatesPanel] Background image set successfully');
                 }
               });
             } catch (error) {
-              console.error('Error setting background image:', error);
+              console.error('❌ [TemplatesPanel] Error setting background image:', error);
             }
+          }, 
+          { 
+            crossOrigin: 'anonymous'
           }
-        }, { 
-          crossOrigin: 'anonymous',
-          onerror: (e) => {
-            console.error('Error loading image:', imageUrl, e);
-          }
-        });
+        );
       }
 
       // Add sample text based on template
@@ -351,6 +436,22 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ onSelectTemplate }) => 
       <div className="p-4 h-full flex flex-col">
         <h3 className="text-lg font-semibold mb-4">Templates</h3>
         
+        {/* Error Feedback */}
+        {loadError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <span className="text-red-500">⚠️</span>
+              <span className="text-red-700 text-sm">{loadError}</span>
+              <button 
+                onClick={() => setLoadError(null)}
+                className="ml-auto text-red-500 hover:text-red-700"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+        
         {/* Browse Templates Button */}
         <button
           onClick={() => setShowBrowseModal(true)}
@@ -463,11 +564,18 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ onSelectTemplate }) => 
                     </div>
                   )}
 
-                  {/* Hover Overlay */}
+                  {/* Loading/Hover Overlay */}
                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
-                    <button className="opacity-0 group-hover:opacity-100 bg-white text-gray-800 px-3 py-1 rounded-lg text-sm font-medium transition-opacity">
-                      Use Template
-                    </button>
+                    {loadingTemplate === template.id ? (
+                      <div className="bg-white rounded-lg px-3 py-2 flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-gray-800 text-sm font-medium">Loading...</span>
+                      </div>
+                    ) : (
+                      <button className="opacity-0 group-hover:opacity-100 bg-white text-gray-800 px-3 py-1 rounded-lg text-sm font-medium transition-opacity">
+                        Use Template
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -506,9 +614,9 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ onSelectTemplate }) => 
 
     {/* Browse Templates Modal */}
     {showBrowseModal && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center">
         <div
-          className="absolute inset-0 bg-black/40 backdrop-blur-md"
+          className="absolute inset-0 bg-black/60 backdrop-blur-md"
           onClick={() => setShowBrowseModal(false)}
         />
         <div className="relative z-10 bg-white rounded-2xl shadow-2xl mx-4 max-w-6xl w-full max-h-[90vh] overflow-hidden">

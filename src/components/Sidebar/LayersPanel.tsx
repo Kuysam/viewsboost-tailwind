@@ -7,6 +7,11 @@ import {
 } from 'lucide-react';
 import { useEditorStore, useCanvasObjects } from '../../store/editorStore';
 
+interface LayersPanelProps {
+  selectedObject?: fabric.Object | null;
+  onSelectLayer?: (obj: fabric.Object) => void;
+}
+
 interface LayerItem {
   id: string;
   name: string;
@@ -17,7 +22,7 @@ interface LayerItem {
   fabricObject: fabric.Object;
 }
 
-const LayersPanel: React.FC = () => {
+const LayersPanel: React.FC<LayersPanelProps> = ({ selectedObject, onSelectLayer }) => {
   const { canvas, selectedObjectIds, selectObjects, removeObject, duplicateObject } = useEditorStore();
   const canvasObjects = useCanvasObjects();
   const [showActions, setShowActions] = useState<string | null>(null);

@@ -2,9 +2,15 @@ import React, { useState } from 'react';
 import { fabric } from 'fabric';
 import { 
   Square, Circle, Triangle, Star, Heart, Hexagon, 
-  Diamond, Plus, Palette
+  Diamond, Plus, Palette, Trash2, Minus
 } from 'lucide-react';
 import { useEditorStore } from '../../store/editorStore';
+
+interface ShapesPanelProps {
+  onAddShape?: (type: string) => void;
+  onDelete?: () => void;
+  selectedObject?: fabric.Object | null;
+}
 
 interface ShapePreset {
   id: string;
@@ -105,7 +111,7 @@ const complexShapes = [
   },
 ];
 
-const ShapesPanel: React.FC = () => {
+const ShapesPanel: React.FC<ShapesPanelProps> = ({ onAddShape, onDelete, selectedObject }) => {
   const { canvas } = useEditorStore();
   const [activeColor, setActiveColor] = useState('#3b82f6');
   const [strokeColor, setStrokeColor] = useState('#000000');
@@ -182,16 +188,16 @@ const ShapesPanel: React.FC = () => {
     canvas.renderAll();
   };
 
-  const selectedObject = canvas?.getActiveObject();
-  const isShapeSelected = selectedObject && 
-    !(selectedObject instanceof fabric.IText) && 
-    !(selectedObject instanceof fabric.Image);
+  const canvasSelectedObject = canvas?.getActiveObject();
+  const isShapeSelected = canvasSelectedObject && 
+    !(canvasSelectedObject instanceof fabric.IText) && 
+    !(canvasSelectedObject instanceof fabric.Image);
 
   const updateSelectedShape = (property: string, value: any) => {
-    if (!canvas || !selectedObject) return;
+    if (!canvas || !canvasSelectedObject) return;
 
-    (selectedObject as any)[property] = value;
-    selectedObject.dirty = true;
+    (canvasSelectedObject as any)[property] = value;
+    canvasSelectedObject.dirty = true;
     canvas.renderAll();
   };
 
@@ -200,9 +206,46 @@ const ShapesPanel: React.FC = () => {
       <div>
         <h3 className="text-lg font-semibold mb-4 text-gray-800">Shapes</h3>
         
+        {/* Quick Shape Buttons (from CanvasEditor) */}
+        <div className="mb-6">
+          <h4 className="text-sm font-medium text-gray-600 mb-3">Quick Add</h4>
+          <div className="space-y-2">
+            <button 
+              onClick={() => onAddShape ? onAddShape('rect') : addShape(shapePresets[0])}
+              className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition flex items-center justify-center gap-2"
+            >
+              <Square size={16} />
+              Add Rectangle
+            </button>
+            <button 
+              onClick={() => onAddShape ? onAddShape('circle') : addShape(shapePresets[2])}
+              className="w-full bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition flex items-center justify-center gap-2"
+            >
+              <Circle size={16} />
+              Add Circle
+            </button>
+            <button 
+              onClick={() => onAddShape ? onAddShape('line') : null}
+              className="w-full bg-purple-500 text-white py-2 px-4 rounded-lg hover:bg-purple-600 transition flex items-center justify-center gap-2"
+            >
+              <Minus size={16} />
+              Add Line
+            </button>
+            {onDelete && selectedObject && (
+              <button
+                onClick={onDelete}
+                className="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition flex items-center justify-center gap-2"
+              >
+                <Trash2 size={16} />
+                Delete Selected
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Basic Shapes */}
         <div className="mb-6">
-          <h4 className="text-sm font-medium text-gray-600 mb-3">Basic Shapes</h4>
+          <h4 className="text-sm font-medium text-gray-600 mb-3">Shape Presets</h4>
           <div className="grid grid-cols-3 gap-2">
             {shapePresets.map((preset) => (
               <button
@@ -353,12 +396,12 @@ const ShapesPanel: React.FC = () => {
                 min="0"
                 max="1"
                 step="0.1"
-                value={selectedObject?.opacity || 1}
+                value={canvasSelectedObject?.opacity || 1}
                 onChange={(e) => updateSelectedShape('opacity', parseFloat(e.target.value))}
                 className="w-full"
               />
               <div className="text-xs text-gray-500 mt-1">
-                {Math.round((selectedObject?.opacity || 1) * 100)}%
+                {Math.round((canvasSelectedObject?.opacity || 1) * 100)}%
               </div>
             </div>
           )}

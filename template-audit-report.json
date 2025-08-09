@@ -1,0 +1,63 @@
+{
+  "total": 67,
+  "withVideoSource": 67,
+  "withImageUrl": 0,
+  "withPreview": 67,
+  "categories": [
+    "Social Media Posts",
+    "TikTok Video",
+    "YouTube"
+  ],
+  "sampleTemplates": [
+    {
+      "id": "auto-template-1751567385141-6",
+      "title": "tiktok6",
+      "category": "TikTok Video",
+      "hasVideoSource": true,
+      "hasImageUrl": false,
+      "hasPreview": true,
+      "videoSource": "https://firebasestorage.googleapis.com/v0/b/viewsboostv2.firebasestorage.app/o/Templates%2FVideo%2Ft",
+      "preview": "https://firebasestorage.googleapis.com/v0/b/viewsboostv2.firebasestorage.app/o/Templates%2FImages%2F"
+    },
+    {
+      "id": "image-template-vlogger_streaming_online_during_party_with_friends_2025_04_15_01_07_49_utc-1751664042941",
+      "title": "Vlogger Streaming Online During Party With Friends 2025 04 15 01 07 49 Utc",
+      "category": "Social Media Posts",
+      "hasVideoSource": true,
+      "hasImageUrl": false,
+      "hasPreview": true,
+      "videoSource": "vlogger-streaming-online-during-party-with-friends-2025-04-15-01-07-49-utc.jpg",
+      "preview": "https://firebasestorage.googleapis.com/v0/b/viewsboostv2.firebasestorage.app/o/Templates%2FImages%2F"
+    },
+    {
+      "id": "image-template-semolina_wheat_grains_are_white_in_raw_form_2024_12_13_03_11_10_utc-1751664042941",
+      "title": "Semolina Wheat Grains Are White In Raw Form 2024 12 13 03 11 10 Utc",
+      "category": "Social Media Posts",
+      "hasVideoSource": true,
+      "hasImageUrl": false,
+      "hasPreview": true,
+      "videoSource": "semolina-wheat-grains-are-white-in-raw-form-2024-12-13-03-11-10-utc.jpg",
+      "preview": "https://firebasestorage.googleapis.com/v0/b/viewsboostv2.firebasestorage.app/o/Templates%2FImages%2F"
+    },
+    {
+      "id": "image-template-stadium_football_league_soccer_ball_soccer_2025_02_03_15_30_36_utc-1751664042941",
+      "title": "Stadium Football League Soccer Ball Soccer 2025 02 03 15 30 36 Utc",
+      "category": "Social Media Posts",
+      "hasVideoSource": true,
+      "hasImageUrl": false,
+      "hasPreview": true,
+      "videoSource": "stadium-football-league-soccer-ball-soccer-2025-02-03-15-30-36-utc.jpg",
+      "preview": "https://firebasestorage.googleapis.com/v0/b/viewsboostv2.firebasestorage.app/o/Templates%2FImages%2F"
+    },
+    {
+      "id": "image-template-time_to_relax_and_settle_down_on_the_sofa_2025_04_06_09_28_13_utc-1751664042941",
+      "title": "Time To Relax And Settle Down On The Sofa 2025 04 06 09 28 13 Utc",
+      "category": "Social Media Posts",
+      "hasVideoSource": true,
+      "hasImageUrl": false,
+      "hasPreview": true,
+      "videoSource": "time-to-relax-and-settle-down-on-the-sofa-2025-04-06-09-28-13-utc.jpg",
+      "preview": "https://firebasestorage.googleapis.com/v0/b/viewsboostv2.firebasestorage.app/o/Templates%2FImages%2F"
+    }
+  ]
+}

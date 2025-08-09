@@ -374,7 +374,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({
         saveCanvasState(canvas);
         playSound('add');
         toast.success('Image added');
-      });
+      }, { crossOrigin: 'anonymous' });
     };
 
     reader.readAsDataURL(file);
@@ -413,7 +413,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({
         toast.dismiss();
         toast.success('Background removed!');
         playSound('modify');
-      });
+      }, { crossOrigin: 'anonymous' });
     } catch (error) {
       toast.dismiss();
       toast.error('Background removal failed');
@@ -490,7 +490,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({
         saveCanvasState(canvas);
         playSound('add');
         toast.success('QR code generated!');
-      });
+      }, { crossOrigin: 'anonymous' });
     } catch (error) {
       toast.error('QR code generation failed');
       console.error('QR code error:', error);
@@ -520,7 +520,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({
         saveCanvasState(canvas);
         playSound('add');
         toast.success('Barcode generated!');
-      });
+      }, { crossOrigin: 'anonymous' });
     } catch (error) {
       toast.error('Barcode generation failed');
       console.error('Barcode error:', error);

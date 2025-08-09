@@ -1,0 +1,21 @@
+{
+  "layers": [
+    {
+      "type": "image",
+      "url": "https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1350&w=1080",
+      "x": 160,
+      "y": 180,
+      "w": 900
+    },
+    {
+      "type": "text",
+      "text": "Template: Modern Poster A",
+      "x": 160,
+      "y": 120,
+      "fontSize": 36,
+      "fill": "#222",
+      "fontWeight": "bold"
+    }
+  ]
+}
+  
