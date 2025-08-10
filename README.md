@@ -75,3 +75,9 @@ To ensure rewards and profile features work, every user must have a document in 
 
 - If you see 400 errors from YouTube API, check your `.env` keys and restart the dev server.
 - If you see Firestore errors about missing user docs, make sure onboarding is up to date and your Firestore rules allow user doc creation.
+
+### Security Notice
+
+Please **do not commit** the `serviceAccountKey.json` file to version control.  
+It contains sensitive credentials and should be managed securely.
+
