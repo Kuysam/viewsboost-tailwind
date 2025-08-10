@@ -151,6 +151,10 @@
     "yjs": "^13.6.27",
     "zustand": "^4.5.7"
   },
+"overrides": {
+  "idb": "^8.0.0",
+  "wrap-idb-value": "^5.0.0"
+},
   "devDependencies": {
     "@eslint/js": "^8.56.0",
     "@types/dompurify": "^3.0.5",
@@ -187,4 +191,8 @@
     "url": "https://github.com/Kuysam/viewsboost-tailwind/issues"
   },
   "homepage": "https://github.com/Kuysam/viewsboost-tailwind#readme"
+  ,
+  "engines": {
+    "node": "^18 || ^20"
+  }
 }
