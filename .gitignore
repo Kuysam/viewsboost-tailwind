@@ -3,6 +3,7 @@
 .env.local
 .env.*.local
 
+
 # Dependencies
 node_modules
 dist
@@ -27,3 +28,10 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Ignore service account key
+serviceAccountKey.json
+
+
+
+serviceAccountKey.json
