@@ -191,4 +191,8 @@
     "url": "https://github.com/Kuysam/viewsboost-tailwind/issues"
   },
   "homepage": "https://github.com/Kuysam/viewsboost-tailwind#readme"
+  ,
+  "engines": {
+    "node": "^18 || ^20"
+  }
 }

@@ -22,7 +22,8 @@
     {
       "site": "viewsboostv2",
       "public": "dist",
-      "ignore": ["**/.*", "**/node_modules/**", "firebase.json"],
+      "ignore": ["**/.*", "**/node_modules/**"],
+      "cleanUrls": true,
       "rewrites": [{ "source": "**", "destination": "/index.html" }]
     }
   ]
