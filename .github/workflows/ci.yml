@@ -1,4 +1,5 @@
 name: CI + Firebase Hosting
+
 on:
   pull_request:
   push:
@@ -10,13 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Use the same Node you used when you refreshed package-lock
+      # Use the same Node you used when you refreshed the lockfile
       - uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: npm
 
-      # Write Vite env from repo secrets (don't commit .env)
+      # Write Vite env from repo secrets (never commit .env)
       - name: Create .env for Vite
         run: |
           cat > .env << 'EOF'
@@ -39,7 +40,7 @@ jobs:
           name: dist
           path: dist
 
-      # Run checks but don’t fail the PR on them
+      # Optional: run checks but don’t fail PR on them
       - name: Typecheck (report only)
         run: npm run typecheck || true
       - name: Lint (report only)
@@ -60,6 +61,7 @@ jobs:
           projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
           channelId: pr-${{ github.event.pull_request.number }}
           expires: 7d
+          firebaseToolsVersion: '13.15.4'  # 👈 pin the CLI to avoid the expireTime bug
 
   deploy_live:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -75,3 +77,4 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
           channelId: live
+          firebaseToolsVersion: '13.15.4'  # 👈 pin here too
