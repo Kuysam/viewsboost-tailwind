@@ -1,5 +1,5 @@
 // src/App.tsx
-import StudioPage from './pages/studio/StudioPage';
+import StudioPage from './studio/StudioPage';
 
 import React, { useEffect, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
@@ -31,7 +31,7 @@ const LiveStream = React.lazy(() => import('./pages/live/[id]'));
 
 // Lazy load studio components (large and specialized)
 const StudioLive = React.lazy(() => import('./pages/studio/Live'));
-const StudioRoom = React.lazy(() => import('./pages/studio/Room'));
+const StudioRoom = React.lazy(() => import('./pages/live/Room'));
 const TemplateImporter = React.lazy(() => import('./pages/TemplateImporter'));
 const CategoryTemplates = React.lazy(() => import('./pages/CategoryTemplates'));
 // TemplateEditor replaced by Studio - all editor routes now use Studio
