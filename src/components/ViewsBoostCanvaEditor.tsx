@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { fabric } from 'fabric';
 import { addMediaLayer } from '../utils/canvasMedia';
+import { CanvasHost } from '@/canvas/host';
 import {
   Type, Image, Square, Circle, Triangle, Upload, Download, Save,
   Undo, Redo, Copy, Trash2, RotateCw, Palette, AlignLeft, AlignCenter,
@@ -118,6 +119,48 @@ export default function ViewsBoostCanvaEditor({ template, onSave, onExport, onCl
       };
     }
   }, []);
+
+  // Bind global CanvasHost so TopBar controls operate this editor
+  useEffect(() => {
+    if (!canvas) return;
+    CanvasHost.bind({
+      undo: () => {
+        // reuse component undo
+        if (historyStep > 0) {
+          const prevState = canvasHistory[historyStep - 1];
+          canvas.loadFromJSON(prevState, () => {
+            canvas.renderAll();
+            setHistoryStep(historyStep - 1);
+          });
+        }
+      },
+      redo: () => {
+        if (historyStep < canvasHistory.length - 1) {
+          const nextState = canvasHistory[historyStep + 1];
+          canvas.loadFromJSON(nextState, () => {
+            canvas.renderAll();
+            setHistoryStep(historyStep + 1);
+          });
+        }
+      },
+      export: async (fmt, scale, transparent) => {
+        const format = fmt === 'jpg' ? 'jpeg' : 'png';
+        const dataUrl = (canvas as any).toDataURL({ format, multiplier: scale });
+        const res = await fetch(dataUrl);
+        return await res.blob();
+      },
+      newDesign: (w, h) => {
+        canvas.setDimensions({ width: w, height: h });
+        canvas.clear();
+        canvas.renderAll();
+        // record fresh state
+        const currentState = JSON.stringify(canvas.toJSON());
+        const next = [currentState];
+        setCanvasHistory(next);
+        setHistoryStep(0);
+      },
+    });
+  }, [canvas, canvasHistory, historyStep]);
 
   // Load template (studio layers or external jsonPath)
   useEffect(() => {
