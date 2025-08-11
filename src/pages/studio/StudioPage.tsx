@@ -37,7 +37,7 @@ export default function StudioPage() {
       const demo: TemplateItem[] = Array.from({ length: 12 }).map((_, i) => ({
         id: String(i + 1),
         name: ["Story Poster", "Bold Title", "Gradient Reel", "Clean Promo"][i % 4] + " " + (i + 1),
-        thumb: \`https://picsum.photos/seed/viewsboost-\${i}/540/960\`,
+        thumb: `https://picsum.photos/seed/viewsboost-${i}/540/960`,
       }));
       setItems(demo);
       setLoading(false);
@@ -48,7 +48,7 @@ export default function StudioPage() {
   const select = (id: string) => {
     setLayers((ls) => ls.map((l) => ({ ...l, selected: l.id === id })));
     const name = layers.find((l)=>l.id===id)?.name ?? id;
-    announce(\`Selected layer \${name}\`);
+    announce(`Selected layer ${name}`);
   };
 
   const toggleVis = (id: string) => {
@@ -69,21 +69,21 @@ export default function StudioPage() {
       if (action === "duplicate") {
         const src = ls[idx];
         const clone: Layer = { ...src, id: String(Date.now()), name: src.name + " copy", selected: true, locked: false };
-        announce(\`Duplicated \${src.name}\`);
+        announce(`Duplicated ${src.name}`);
         return ls.map((l) => ({ ...l, selected: false })).toSpliced(idx + 1, 0, clone);
       }
 
       if (action === "bringToFront") {
         const moved = ls[idx];
         const rest = ls.toSpliced(idx, 1);
-        announce(\`Brought \${moved.name} to front\`);
+        announce(`Brought ${moved.name} to front`);
         return [...rest, { ...moved, selected: true }];
       }
 
       if (action === "delete") {
         const name = ls[idx].name;
         const rest = ls.toSpliced(idx, 1);
-        announce(\`Deleted \${name}\`);
+        announce(`Deleted ${name}`);
         return rest;
       }
 
@@ -100,18 +100,18 @@ export default function StudioPage() {
   const defaultName = useMemo(() => {
     const d = new Date();
     const date = [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-");
-    const size = canvasSize ? \`\${canvasSize.w}x\${canvasSize.h}\` : "design";
-    return \`viewsboost-\${size}-\${date}\`;
+    const size = canvasSize ? `${canvasSize.w}x${canvasSize.h}` : "design";
+    return `viewsboost-${size}-${date}`;
   }, [canvasSize]);
 
   async function doExport(fmt: ExportFormat, scale: number, transparent: boolean) {
     try {
       toast.loading("Exporting…", { id: "export" });
       const blob = await CanvasHost.export(fmt, scale, transparent);
-      const filename = \`\${defaultName}.\${fmt}\`;
+      const filename = `${defaultName}.${fmt}`;
       downloadBlob(blob, filename);
       toast.success("Export complete", { id: "export" });
-      announce(\`Exported \${filename}\`);
+      announce(`Exported ${filename}`);
     } catch (e) {
       console.error(e);
       toast.error("Export failed", { id: "export" });
@@ -152,7 +152,7 @@ export default function StudioPage() {
       <NewDesignModal
         open={newOpen}
         onClose={()=>setNewOpen(false)}
-        onCreate={(w,h)=>{ setSize(w,h); CanvasHost.newDesign(w,h); announce(\`Canvas set to \${w}×\${h}\`); }}
+        onCreate={(w,h)=>{ setSize(w,h); CanvasHost.newDesign(w,h); announce(`Canvas set to ${w}×${h}`); }}
       />
 
       <ExportDialog
@@ -179,7 +179,7 @@ export default function StudioPage() {
                 onSelect={(t)=>{
                   setSize(1080, 1920);
                   CanvasHost.newDesign(1080, 1920);
-                  announce(\`Opened template: \${t.name}\`);
+                  announce(`Opened template: ${t.name}`);
                 }}
               />
             </section>

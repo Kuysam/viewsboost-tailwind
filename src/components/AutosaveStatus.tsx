@@ -6,7 +6,7 @@ export default function AutosaveStatus({ dirty }: { dirty: boolean }) {
   (window as any).__onSaved = () => {
     lastSaved.current = new Date();
     const time = lastSaved.current.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    setLabel(\`All changes saved • \${time}\`);
+          setLabel(`All changes saved • ${time}`);
   };
   return <div className="text-xs text-slate-500">{label}</div>;
 }

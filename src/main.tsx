@@ -9,6 +9,8 @@ import './index.css';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ThemeProvider } from './contexts/ThemeContext'; // ✅ Added
 import ErrorBoundary from './components/ErrorBoundary';
+import { StudioProvider } from './state/studio.tsx';
+import { Toaster } from './lib/toast';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -42,20 +44,23 @@ if (import.meta.env.DEV) {
   });
 }
 
-// ✅ Wrap App in both ThemeProvider and LanguageProvider
+// ✅ Wrap App with StudioProvider and Toaster for BMAD Studio UI
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
       <ThemeProvider>
         <LanguageProvider>
-          <BrowserRouter
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true
-            }}
-          >
-            <App />
-          </BrowserRouter>
+          <StudioProvider>
+            <BrowserRouter
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true
+              }}
+            >
+              <App />
+              <Toaster richColors />
+            </BrowserRouter>
+          </StudioProvider>
         </LanguageProvider>
       </ThemeProvider>
     </ErrorBoundary>

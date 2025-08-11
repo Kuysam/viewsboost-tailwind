@@ -1,5 +1,5 @@
-import StudioPage from "@/pages/studio/StudioPage";
 // src/App.tsx
+import StudioPage from './pages/studio/StudioPage';
 
 import React, { useEffect, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
@@ -174,12 +174,12 @@ export default function App() {
             }
           />
 
-          {/* ---- Studio MVP Route - Lazy loaded ---- */}
+          {/* ---- Studio BMAD Route - Uses new BMAD Studio UI ---- */}
           <Route
             path="/studio"
             element={
               <ProtectedRoute>
-                <Studio />
+                <StudioPage />
               </ProtectedRoute>
             }
           />
