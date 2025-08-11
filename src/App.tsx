@@ -19,6 +19,10 @@ import ProtectedRoute from './components/ProtectedRoute';
 import VideoProcessingTest from './pages/VideoProcessingTest';
 
 
+import SeedTemplates from './dev/SeedTemplates';
+
+import StorageSmoke from './dev/StorageSmoke';
+
 // Lazy load heavy components for better code splitting
 const VideoWatchPage = React.lazy(() => import('./pages/VideoWatchPage'));
 const WatchHistoryPage = React.lazy(() => import('./pages/WatchHistoryPage'));
@@ -30,7 +34,7 @@ const Shorts = React.lazy(() => import('./pages/Shorts'));
 const LiveStream = React.lazy(() => import('./pages/live/[id]'));
 
 // Lazy load studio components (large and specialized)
-const StudioLive = React.lazy(() => import('./pages/Live/Livee'));
+const StudioLive = React.lazy(() => import('./pages/live/Livee'));
 const StudioRoom = React.lazy(() => import('./pages/live/Room'));
 const TemplateImporter = React.lazy(() => import('./pages/TemplateImporter'));
 const CategoryTemplates = React.lazy(() => import('./pages/CategoryTemplates'));
@@ -208,7 +212,9 @@ export default function App() {
 
           {/* 404 fallback */}
           <Route path="*" element={<NotFound />} />
-        </Routes>
+          <Route path="/dev/seed-templates" element={<SeedTemplates />} />
+  <Route path="/dev/storage-smoke" element={<StorageSmoke />} />
+</Routes>
       </Suspense>
     </BaseLayout>
   );

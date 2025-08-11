@@ -10,8 +10,10 @@ interface Props {
 export default function ProtectedRoute({ children }: Props) {
   const { user, loading } = useAuth();
 
-  // Development bypass for testing (remove in production)
-  if (import.meta.env.DEV && window.location.pathname === '/studio') {
+  // Optional development bypass (disabled by default for safety)
+  // To enable temporarily during local dev, set VITE_ALLOW_STUDIO_BYPASS=true
+  const allowBypass = import.meta.env.VITE_ALLOW_STUDIO_BYPASS === 'true';
+  if (import.meta.env.DEV && allowBypass && window.location.pathname === '/studio') {
     return <>{children}</>;
   }
 
