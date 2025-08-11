@@ -1,3 +1,4 @@
+import StudioPage from "@/pages/studio/StudioPage";
 // src/App.tsx
 
 import React, { useEffect, Suspense } from 'react';
