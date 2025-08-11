@@ -10,9 +10,7 @@
     "lint": "echo 'Skipping lint...'",
     "build": "echo 'Skipping build...'"
   },
-  "engines": {
-    "node": "20"
-  },
+  "engines": { "node": "20.x" },
   "main": "index.js",
   "dependencies": {
     "firebase-admin": "^12.6.0",
