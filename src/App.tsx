@@ -30,7 +30,7 @@ const Shorts = React.lazy(() => import('./pages/Shorts'));
 const LiveStream = React.lazy(() => import('./pages/live/[id]'));
 
 // Lazy load studio components (large and specialized)
-const StudioLive = React.lazy(() => import('./pages/studio/Live'));
+const StudioLive = React.lazy(() => import('./pages/Live/Livee'));
 const StudioRoom = React.lazy(() => import('./pages/live/Room'));
 const TemplateImporter = React.lazy(() => import('./pages/TemplateImporter'));
 const CategoryTemplates = React.lazy(() => import('./pages/CategoryTemplates'));
