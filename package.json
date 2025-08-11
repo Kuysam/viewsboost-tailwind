@@ -192,7 +192,5 @@
   },
   "homepage": "https://github.com/Kuysam/viewsboost-tailwind#readme"
   ,
-  "engines": {
-    "node": "^18 || ^20"
-  }
+  "engines": { "node": "20.x" }
 }

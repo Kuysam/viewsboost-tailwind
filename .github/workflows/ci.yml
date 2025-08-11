@@ -1,4 +1,4 @@
-name: CI + Firebase Hosting
+name: CI
 on:
   pull_request:
   push:
@@ -9,8 +9,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: 'npm' }
+        with:
+          node-version: 20
+          cache: npm
 
       - name: Create .env for Vite
         run: |
@@ -23,43 +26,17 @@ jobs:
           VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}
           EOF
 
-      - run: npm ci --no-audit --fund=false
-      - run: npm run build
-      - uses: actions/upload-artifact@v4
-        with: { name: dist, path: dist }
+      - name: Install deps
+        run: npm ci --no-audit --fund=false
 
-  preview:
-    if: github.event_name == 'pull_request'
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with: { name: dist, path: dist }
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
-          channelId: pr-${{ github.event.pull_request.number }}
-          expires: 7d
-          firebaseToolsVersion: '13.15.4'
+      - name: Build
+        run: npm run build
 
-  deploy_live:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with: { name: dist, path: dist }
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
-          channelId: live
-          firebaseToolsVersion: '13.15.4'
+      - name: Lint (report only)
+        run: npm run lint || true
+
+      - name: Typecheck (report only)
+        run: npm run typecheck || true
 
 name: CI + Firebase Hosting
 
