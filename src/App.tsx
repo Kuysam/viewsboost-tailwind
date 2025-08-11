@@ -17,7 +17,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 
 import VideoProcessingTest from './pages/VideoProcessingTest';
-import TimelineTest from './pages/TimelineTest';
+
 
 // Lazy load heavy components for better code splitting
 const VideoWatchPage = React.lazy(() => import('./pages/VideoWatchPage'));
@@ -26,11 +26,10 @@ const SearchHistoryPage = React.lazy(() => import('./pages/SearchHistoryPage'));
 
 // Lazy load media-heavy components
 const Shorts = React.lazy(() => import('./pages/Shorts'));
-const Live = React.lazy(() => import('./pages/Live'));
+
 const LiveStream = React.lazy(() => import('./pages/live/[id]'));
 
 // Lazy load studio components (large and specialized)
-const Studio = React.lazy(() => import('./pages/Studio'));
 const StudioLive = React.lazy(() => import('./pages/studio/Live'));
 const StudioRoom = React.lazy(() => import('./pages/studio/Room'));
 const TemplateImporter = React.lazy(() => import('./pages/TemplateImporter'));
@@ -84,7 +83,7 @@ export default function App() {
 
 
             <Route path="/video-processing-test" element={<VideoProcessingTest />} />
-            <Route path="/timeline-test" element={<TimelineTest />} />
+      
             <Route path="/simple-editor" element={<Navigate to="/studio" replace />} />
           
           {/* Template Importer - Lazy loaded (large component) */}
@@ -140,14 +139,10 @@ export default function App() {
             }
           />
 
-          {/* Live: multi-user and YouTube live - Lazy loaded */}
+          {/* Live: multi-user and YouTube live - Redirects to studio live */}
           <Route
             path="/live"
-            element={
-              <ProtectedRoute>
-                <Live />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/studio/live" replace />}
           />
           <Route
             path="/live/:id"
@@ -200,55 +195,13 @@ export default function App() {
             }
           />
 
-          {/* Studio Editor Routes - All editor routes now use Studio */}
-          <Route
-            path="/editor/shorts"
-            element={
-              <ProtectedRoute>
-                <Studio />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/editor/story"
-            element={
-              <ProtectedRoute>
-                <Studio />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/editor/square"
-            element={
-              <ProtectedRoute>
-                <Studio />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/editor/thumbnail"
-            element={
-              <ProtectedRoute>
-                <Studio />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/editor/video"
-            element={
-              <ProtectedRoute>
-                <Studio />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/editor/original"
-            element={
-              <ProtectedRoute>
-                <Studio />
-              </ProtectedRoute>
-            }
-          />
+          {/* Studio Editor Routes - All editor routes now redirect to studio */}
+          <Route path="/editor/shorts" element={<Navigate to="/studio" replace />} />
+          <Route path="/editor/story" element={<Navigate to="/studio" replace />} />
+          <Route path="/editor/square" element={<Navigate to="/studio" replace />} />
+          <Route path="/editor/thumbnail" element={<Navigate to="/studio" replace />} />
+          <Route path="/editor/video" element={<Navigate to="/studio" replace />} />
+          <Route path="/editor/original" element={<Navigate to="/studio" replace />} />
 
           {/* --- Hidden Admin Panel (Ctrl+Shift+A) - Lazy loaded --- */}
           <Route path="/admin-panel-237abc" element={<AdminPanel />} />
