@@ -34,7 +34,7 @@ const Shorts = React.lazy(() => import('./pages/Shorts'));
 const LiveStream = React.lazy(() => import('./pages/live/[id]'));
 
 // Lazy load studio components (large and specialized)
-const StudioLive = React.lazy(() => import('./pages/live/Livee'));
+const StudioLive = React.lazy(() => import('./pages/live/StudioLive'));
 const StudioRoom = React.lazy(() => import('./pages/live/Room'));
 const TemplateImporter = React.lazy(() => import('./pages/TemplateImporter'));
 const CategoryTemplates = React.lazy(() => import('./pages/CategoryTemplates'));
@@ -183,11 +183,14 @@ export default function App() {
             }
           />
 
-          {/* ---- Canvas Editor Test Route - Redirects to Studio ---- */}
-          <Route
-            path="/canvas-editor"
-            element={<Navigate to="/studio" replace />}
-          />
+          {/* ---- Dev-only routes ---- */}
+          {import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEV_ROUTES === 'true' && (
+            <>
+              <Route path="/dev/seed-templates" element={<SeedTemplates />} />
+              <Route path="/dev/storage-smoke" element={<StorageSmoke />} />
+              <Route path="/canvas-editor" element={<Navigate to="/studio" replace />} />
+            </>
+          )}
 
           {/* Category Templates Route - Lazy loaded */}
           <Route
