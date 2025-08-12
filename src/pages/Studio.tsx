@@ -61,6 +61,26 @@ function Row({
 
 export default function Studio() {
   const navigate = useNavigate();
+  const filterTabs = useMemo(
+    () => ['All', 'Logo', 'Video', 'Poster', 'Instagram story', 'Flyer', 'Presentation'],
+    []
+  );
+  const [selectedFilter, setSelectedFilter] = useState<string>('All');
+  const { templates: allTemplates, loading: loadingAll } = useTemplates(null);
+
+  const featured = useMemo(() => {
+    const t = (allTemplates || []) as any[];
+    const sel = selectedFilter.toLowerCase();
+    if (sel === 'all') return t.slice(0, 24);
+    return t
+      .filter((x) => {
+        const cat = (x.category || '').toLowerCase();
+        const tags = Array.isArray(x.tags) ? x.tags.map((s: string) => s.toLowerCase()) : [];
+        const hay = [cat, ...tags].join(' ');
+        return hay.includes(sel) || hay.replace(/-/g, ' ').includes(sel);
+      })
+      .slice(0, 24);
+  }, [allTemplates, selectedFilter]);
   const topCategories = useMemo(
     () => [
       'Shorts',
@@ -90,6 +110,25 @@ export default function Studio() {
             </button>
           </div>
         </div>
+        {/* Top filter bar */}
+        <div className="max-w-7xl mx-auto px-4 pb-3 overflow-x-auto">
+          <div className="flex gap-2">
+            {filterTabs.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setSelectedFilter(tab)}
+                className={
+                  'px-3 py-1 rounded-full text-sm whitespace-nowrap border ' +
+                  (selectedFilter === tab
+                    ? 'bg-yellow-400 text-black border-yellow-500'
+                    : 'bg-zinc-900/60 text-white/80 border-white/10 hover:bg-zinc-800')
+                }
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
       </header>
 
       {/* Scrollable dashboard content */}
@@ -101,6 +140,38 @@ export default function Studio() {
               <button key={s.label} className="aspect-video rounded-lg bg-zinc-900 border border-white/10 flex items-end justify-center p-2">
                 <span className="text-xs text-white/70">{s.label}</span>
               </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Featured based on filter */}
+        <section className="mb-10">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-base font-medium text-white/90">Browse templates</h3>
+            <button
+              onClick={() => navigate('/templates/Shorts')}
+              className="text-xs text-yellow-300 hover:underline"
+            >
+              View all
+            </button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {(loadingAll ? Array.from({ length: 12 }) : featured).map((t: any, i: number) => (
+              <div
+                key={t?.id || i}
+                className="rounded-lg bg-zinc-900 border border-white/10 overflow-hidden aspect-[4/3]"
+              >
+                {loadingAll ? (
+                  <div className="w-full h-full animate-pulse bg-zinc-800" />
+                ) : (
+                  <img
+                    loading="lazy"
+                    src={t.previewURL || t.thumbnail || '/default-template.png'}
+                    className="w-full h-full object-cover"
+                    alt={t.title || 'template'}
+                  />
+                )}
+              </div>
             ))}
           </div>
         </section>
