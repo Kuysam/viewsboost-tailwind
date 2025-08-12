@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { storage, db } from '../lib/firebase';
-import { useUser } from '../studio/_auth/useUser';
+import { useAuth as useUser } from '../lib/auth';
 
 type SeedT = { slug:string; title:string; tags:string[]; width:number; height:number; bg:string; layers?:any[]; };
 

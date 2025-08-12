@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../lib/firebase';
-import { useUser } from '../studio/_auth/useUser';
+import { useAuth as useUser } from '../lib/auth';
 
 export default function StorageSmoke() {
   const { user, loading } = useUser();
