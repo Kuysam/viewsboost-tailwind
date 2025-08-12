@@ -8,23 +8,17 @@ html, body {
   padding: 0;
 }
 
-:root {
-  --background-primary: #ffffff;
-  --text-primary: #000000;
-}
-
-.dark {
-  --background-primary: #121212;
-  --text-primary: #ffffff;
-}
-
+/* Remove global light background that caused white underlay */
 body {
-  background-color: var(--background-primary);
-  color: var(--text-primary);
-  transition: background-color 0.3s ease;
+  background-color: #0b0c10; /* dark base */
+  color: #ffffff;
 }
 
 /* ----- Studio Background Fixes ----- */
+html, body, #root {
+  background: #0b0c10;
+}
+
 body.studio-bg, html.studio-bg, #root.studio-bg {
   background: none !important;
   overflow: hidden !important;

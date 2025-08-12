@@ -1,5 +1,5 @@
 // src/App.tsx
-import StudioPage from './studio/StudioPage';
+import Studio from './pages/Studio';
 
 import React, { useEffect, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
@@ -173,15 +173,17 @@ export default function App() {
             }
           />
 
-          {/* ---- Studio BMAD Route - Uses new BMAD Studio UI ---- */}
+          {/* ---- Studio Route (fresh implementation) ---- */}
           <Route
             path="/studio"
             element={
               <ProtectedRoute>
-                <StudioPage />
+                <Studio />
               </ProtectedRoute>
             }
           />
+
+          {/* Dev Studio routes removed in fresh start */}
 
           {/* ---- Dev-only routes ---- */}
           {import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEV_ROUTES === 'true' && (
@@ -201,6 +203,17 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Templates routes (alias) */}
+          <Route
+            path="/templates/:category"
+            element={
+              <ProtectedRoute>
+                <CategoryTemplates />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/templates" element={<Navigate to="/category/Shorts" replace />} />
 
           {/* Studio Editor Routes - All editor routes now redirect to studio */}
           <Route path="/editor/shorts" element={<Navigate to="/studio" replace />} />

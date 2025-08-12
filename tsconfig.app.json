@@ -23,7 +23,9 @@
     /* Paths */
     "baseUrl": ".",
     "paths": {
-      "src/*": ["src/*"]
+      "src/*": ["src/*"],
+      "@/*": ["src/*"],
+      "@data/*": ["src/data/*"]
     },
 
     /* Type Definitions */

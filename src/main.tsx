@@ -8,7 +8,6 @@ import './index.css';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ThemeProvider } from './contexts/ThemeContext'; // ✅ Added
 import ErrorBoundary from './components/ErrorBoundary';
-import { StudioProvider } from './state/studio.tsx';
 import { Toaster } from './lib/toast';
 
 import './lib/firebase';
@@ -34,8 +33,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <ThemeProvider>
         <LanguageProvider>
-          <StudioProvider>
-            <BrowserRouter
+          <BrowserRouter
               future={{
                 v7_startTransition: true,
                 v7_relativeSplatPath: true
@@ -44,7 +42,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <App />
               <Toaster richColors />
             </BrowserRouter>
-          </StudioProvider>
         </LanguageProvider>
       </ThemeProvider>
     </ErrorBoundary>

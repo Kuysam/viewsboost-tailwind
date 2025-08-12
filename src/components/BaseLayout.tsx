@@ -57,7 +57,7 @@ export default function BaseLayout({ children }: { children: React.ReactNode }) 
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-black text-white relative">
+    <div className="min-h-screen text-white relative">
       {/* Header */}
       <header className="flex justify-between items-center px-4 py-3 shadow-md bg-black/80 backdrop-blur-sm z-50 relative">
         {/* Left: Menu + Logo */}
