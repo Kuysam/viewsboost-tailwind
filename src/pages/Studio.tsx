@@ -1,6 +1,80 @@
-import React from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTemplates } from '../lib/useTemplates';
+
+type TemplateItem = any;
+
+function Row({
+  title,
+  items,
+  onBrowseAll,
+  itemWidth = 168,
+  aspect = '4/3',
+}: {
+  title: string;
+  items: TemplateItem[];
+  onBrowseAll: () => void;
+  itemWidth?: number;
+  aspect?: string;
+}) {
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = useState(12);
+  const onScroll = useCallback(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const nearEnd = scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 200;
+    if (nearEnd) setVisible((v) => Math.min(v + 12, items.length));
+  }, [items.length]);
+
+  return (
+    <section className="mb-10">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-base font-medium text-white/90">{title}</h3>
+        <button onClick={onBrowseAll} className="text-xs text-yellow-300 hover:underline">
+          Browse all
+        </button>
+      </div>
+      <div
+        ref={scrollerRef}
+        onScroll={onScroll}
+        className="flex gap-3 overflow-x-auto snap-x scrollbar-thin scrollbar-thumb-zinc-700/60 scrollbar-track-transparent"
+      >
+        {items.slice(0, visible).map((t, i) => (
+          <div
+            key={t.id || i}
+            className="rounded-lg bg-zinc-900 border border-white/10 shrink-0 snap-start overflow-hidden"
+            style={{ width: itemWidth, aspectRatio: aspect as any }}
+            title={t.title || t.name}
+          >
+            <img
+              loading="lazy"
+              src={t.previewURL || t.thumbnail || '/default-template.png'}
+              className="w-full h-full object-cover"
+              alt={t.title || t.name || 'template'}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default function Studio() {
+  const navigate = useNavigate();
+  const topCategories = useMemo(
+    () => [
+      'Shorts',
+      'Thumbnails',
+      'Documents',
+      'Marketing/Promotional',
+      'Social Media Posts',
+    ],
+    []
+  );
+
+  // Fetch per category using existing Firestore-only hook
+  const catsData = topCategories.map((c) => ({ cat: c, ...useTemplates(c) }));
+
   return (
     <div className="min-h-screen w-full bg-[#0f1115] text-white">
       <header className="sticky top-0 z-20 backdrop-blur bg-[#0f1115]/80 border-b border-white/10">
@@ -31,27 +105,15 @@ export default function Studio() {
           </div>
         </section>
 
-        {[
-          'Shorts',
-          'Thumbnails',
-          'Docs',
-          'Stock Photos',
-          'Stock Videos'
-        ].map((title) => (
-          <section key={title} className="mb-10">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-base font-medium text-white/90">{title}</h3>
-              <button className="text-xs text-yellow-300 hover:underline">Browse all</button>
-            </div>
-            <div className="flex gap-3 overflow-x-auto snap-x">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="w-[160px] aspect-[4/3] rounded-lg bg-zinc-900 border border-white/10 shrink-0 snap-start"
-                />
-              ))}
-            </div>
-          </section>
+        {catsData.map(({ cat, templates }) => (
+          <Row
+            key={cat}
+            title={cat}
+            items={templates || []}
+            onBrowseAll={() => navigate(`/templates/${encodeURIComponent(cat)}`)}
+            itemWidth={cat.toLowerCase().includes('short') ? 118 : 168}
+            aspect={cat.toLowerCase().includes('short') ? '9/16' : '4/3'}
+          />
         ))}
       </main>
     </div>
