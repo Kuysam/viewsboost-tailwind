@@ -116,7 +116,7 @@ function patternStyle(v: Variant): React.CSSProperties | undefined {
 
 export default function TemplateCard({ template, dark, aspect = '4/3', onClick }: { template: Tmpl; dark: boolean; aspect?: string; onClick?: () => void }) {
   const title = template.title || template.name || 'Untitled';
-  const img = template.previewURL || template.thumbnail || '/default-template.png';
+  const img = template.previewURL || template.thumbnail || '';
   const variant = useMemo(() => pickVariant(template.category, template.tags), [template.category, template.tags]);
 
   const border = dark ? 'border-white/10' : 'border-black/10';
@@ -130,7 +130,17 @@ export default function TemplateCard({ template, dark, aspect = '4/3', onClick }
       style={{ aspectRatio: aspect as any }}
       title={title}
     >
-      <img src={img} alt={title} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+      {/* Background layer (image or gradient for placeholder) */}
+      {img ? (
+        <img src={img} alt={title} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+      ) : (
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(135deg, ${variant.accentFrom} 0%, ${variant.accentTo} 100%)`,
+          }}
+        />
+      )}
       {/* Accent gradient overlay */}
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
