@@ -61,6 +61,31 @@ function Row({
 
 export default function Studio() {
   const navigate = useNavigate();
+  // --- Theme system ---
+  const THEMES = useMemo(
+    () => [
+      { id: 'polished-dark', name: 'Polished Dark', dark: true, bg: 'linear-gradient(135deg,#17171c 0%,#232438 100%)' },
+      { id: 'matte-dark', name: 'Matte Dark', dark: true, bg: 'linear-gradient(135deg,#121318 0%,#1b1d26 100%)' },
+      { id: 'midnight', name: 'Midnight', dark: true, bg: 'linear-gradient(135deg,#0b1020 0%,#151a2e 100%)' },
+      { id: 'deep-violet', name: 'Deep Violet', dark: true, bg: 'linear-gradient(135deg,#1d1033 0%,#2a1d4a 100%)' },
+      { id: 'slate', name: 'Slate', dark: true, bg: 'linear-gradient(135deg,#0f172a 0%,#1f2937 100%)' },
+      { id: 'ocean-dark', name: 'Ocean Dark', dark: true, bg: 'linear-gradient(135deg,#0b132b 0%,#1c2541 100%)' },
+      { id: 'soft-light', name: 'Soft Light', dark: false, bg: 'linear-gradient(135deg,#f8fafc 0%,#e2e8f0 100%)' },
+      { id: 'warm-sunrise', name: 'Warm Sunrise', dark: false, bg: 'linear-gradient(135deg,#fff7ed 0%,#fde68a 100%)' },
+      { id: 'mint-fresh', name: 'Mint Fresh', dark: false, bg: 'linear-gradient(135deg,#ecfeff 0%,#d1fae5 100%)' },
+      { id: 'sky-day', name: 'Sky Day', dark: false, bg: 'linear-gradient(135deg,#e0f2fe 0%,#bae6fd 100%)' },
+      { id: 'desert-sand', name: 'Sand', dark: false, bg: 'linear-gradient(135deg,#fef3c7 0%,#fde68a 100%)' },
+      { id: 'peach', name: 'Peach', dark: false, bg: 'linear-gradient(135deg,#ffe4e6 0%,#fecdd3 100%)' },
+    ],
+    []
+  );
+  const [themeId, setThemeId] = useState<string>('soft-light');
+  const theme = useMemo(() => THEMES.find(t => t.id === themeId) || THEMES[0], [THEMES, themeId]);
+  const textPrimary = theme.dark ? 'text-white' : 'text-zinc-900';
+  const textSubtle = theme.dark ? 'text-white/90' : 'text-zinc-800';
+  const borderSubtle = theme.dark ? 'border-white/10' : 'border-black/10';
+  const cardBg = theme.dark ? 'bg-zinc-900' : 'bg-white';
+  const chipBg = theme.dark ? 'bg-zinc-900/60' : 'bg-white';
   const filterTabs = useMemo(
     () => ['All', 'Logo', 'Video', 'Poster', 'Instagram story', 'Flyer', 'Presentation'],
     []
@@ -96,18 +121,34 @@ export default function Studio() {
   const catsData = topCategories.map((c) => ({ cat: c, ...useTemplates(c) }));
 
   return (
-    <div className="min-h-screen w-full bg-[#0f1115] text-white">
-      <header className="sticky top-0 z-20 backdrop-blur bg-[#0f1115]/80 border-b border-white/10">
+    <div className={`min-h-screen w-full ${textPrimary}`} style={{ background: theme.bg }}>
+      <header className={`sticky top-0 z-20 backdrop-blur border-b ${borderSubtle}`} style={{ background: theme.dark ? 'rgba(15,17,21,0.65)' : 'rgba(255,255,255,0.65)' }}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="text-2xl font-extrabold text-yellow-400">ViewsBoost Studio</div>
+          <div className="text-2xl font-extrabold text-yellow-500">ViewsBoost Studio</div>
           <div className="ml-auto flex items-center gap-2">
             <input
-              className="bg-zinc-900/80 border border-white/10 rounded-lg px-3 py-2 text-sm w-72"
+              className={`${chipBg} ${borderSubtle} border rounded-lg px-3 py-2 text-sm w-72 ${theme.dark ? 'text-white' : 'text-zinc-900'}`}
               placeholder="Search…"
             />
             <button className="px-3 py-2 rounded-lg bg-gradient-to-r from-yellow-400 to-red-500 text-black font-semibold">
               Create
             </button>
+          </div>
+        </div>
+        {/* Theme picker */}
+        <div className="max-w-7xl mx-auto px-4 pb-3 overflow-x-auto">
+          <div className="flex gap-2">
+            {THEMES.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setThemeId(t.id)}
+                className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm whitespace-nowrap border ${borderSubtle} ${themeId===t.id ? 'ring-2 ring-yellow-400' : ''}`}
+                style={{ background: t.bg }}
+                title={t.name}
+              >
+                <span className={`px-2 py-0.5 rounded ${t.dark ? 'bg-white/20 text-white' : 'bg-black/10 text-zinc-900'}`}>{t.name}</span>
+              </button>
+            ))}
           </div>
         </div>
         {/* Top filter bar */}
@@ -117,12 +158,7 @@ export default function Studio() {
               <button
                 key={tab}
                 onClick={() => setSelectedFilter(tab)}
-                className={
-                  'px-3 py-1 rounded-full text-sm whitespace-nowrap border ' +
-                  (selectedFilter === tab
-                    ? 'bg-yellow-400 text-black border-yellow-500'
-                    : 'bg-zinc-900/60 text-white/80 border-white/10 hover:bg-zinc-800')
-                }
+                className={`px-3 py-1 rounded-full text-sm whitespace-nowrap border ${selectedFilter===tab ? 'bg-yellow-400 text-black border-yellow-500' : `${chipBg} ${borderSubtle} ${theme.dark ? 'text-white/80 hover:bg-zinc-800' : 'text-zinc-800 hover:bg-zinc-100'}`}`}
               >
                 {tab}
               </button>
@@ -134,11 +170,11 @@ export default function Studio() {
       {/* Scrollable dashboard content */}
       <main className="max-w-7xl mx-auto px-4 py-6 overflow-y-auto">
         <section className="mb-8">
-          <h2 className="text-lg font-semibold mb-3 text-white/90">Quick start</h2>
+          <h2 className={`text-lg font-semibold mb-3 ${textSubtle}`}>Quick start</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {[{w:1080,h:1080,label:'1080x1080'},{w:1080,h:1920,label:'1080x1920'},{w:1280,h:720,label:'1280x720'},{w:1920,h:1080,label:'1920x1080'}].map((s) => (
-              <button key={s.label} className="aspect-video rounded-lg bg-zinc-900 border border-white/10 flex items-end justify-center p-2">
-                <span className="text-xs text-white/70">{s.label}</span>
+              <button key={s.label} className={`aspect-video rounded-lg ${cardBg} border ${borderSubtle} flex items-end justify-center p-2`}>
+                <span className={`text-xs ${theme.dark ? 'text-white/70' : 'text-zinc-700'}`}>{s.label}</span>
               </button>
             ))}
           </div>
@@ -147,10 +183,10 @@ export default function Studio() {
         {/* Featured based on filter */}
         <section className="mb-10">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-base font-medium text-white/90">Browse templates</h3>
+            <h3 className={`text-base font-medium ${textSubtle}`}>Browse templates</h3>
             <button
               onClick={() => navigate('/templates/Shorts')}
-              className="text-xs text-yellow-300 hover:underline"
+              className="text-xs text-yellow-600 hover:underline"
             >
               View all
             </button>
@@ -159,10 +195,10 @@ export default function Studio() {
             {(loadingAll ? Array.from({ length: 12 }) : featured).map((t: any, i: number) => (
               <div
                 key={t?.id || i}
-                className="rounded-lg bg-zinc-900 border border-white/10 overflow-hidden aspect-[4/3]"
+                className={`rounded-lg ${cardBg} border ${borderSubtle} overflow-hidden aspect-[4/3]`}
               >
                 {loadingAll ? (
-                  <div className="w-full h-full animate-pulse bg-zinc-800" />
+                  <div className={`w-full h-full animate-pulse ${theme.dark ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
                 ) : (
                   <img
                     loading="lazy"
