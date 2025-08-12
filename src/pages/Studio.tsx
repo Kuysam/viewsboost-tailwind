@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTemplates } from '../lib/useTemplates';
+import TemplateCard from '../components/TemplateCard';
 
 type TemplateItem = any;
 
@@ -49,15 +50,10 @@ function Row({
           <div
             key={t.id || i}
             className={`rounded-lg ${cardBgClass} border ${borderClass} shrink-0 snap-start overflow-hidden`}
-            style={{ width: itemWidth, aspectRatio: aspect as any }}
+            style={{ width: itemWidth }}
             title={t.title || t.name}
           >
-            <img
-              loading="lazy"
-              src={t.previewURL || t.thumbnail || '/default-template.png'}
-              className="w-full h-full object-cover"
-              alt={t.title || t.name || 'template'}
-            />
+            <TemplateCard template={t as any} dark={titleClassName.includes('text-white')} aspect={aspect} />
           </div>
         ))}
       </div>
@@ -200,19 +196,11 @@ export default function Studio() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {(loadingAll ? Array.from({ length: 12 }) : featured).map((t: any, i: number) => (
-              <div
-                key={t?.id || i}
-                className={`rounded-lg ${cardBg} border ${borderSubtle} overflow-hidden aspect-[4/3]`}
-              >
+              <div key={t?.id || i} className={`rounded-lg ${cardBg} border ${borderSubtle} overflow-hidden`}>
                 {loadingAll ? (
-                  <div className={`w-full h-full animate-pulse ${theme.dark ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
+                  <div className={`w-full h-full animate-pulse ${theme.dark ? 'bg-zinc-800' : 'bg-zinc-200'}`} style={{ aspectRatio: '4/3' }} />
                 ) : (
-                  <img
-                    loading="lazy"
-                    src={t.previewURL || t.thumbnail || '/default-template.png'}
-                    className="w-full h-full object-cover"
-                    alt={t.title || 'template'}
-                  />
+                  <TemplateCard template={t} dark={theme.dark} aspect="4/3" />
                 )}
               </div>
             ))}
@@ -226,7 +214,7 @@ export default function Studio() {
             titleClassName={`text-[16px] font-bold ${titleStrong}`}
             cardBgClass={cardBg}
             borderClass={borderSubtle}
-            items={templates || []}
+            items={(templates || []) as any}
             onBrowseAll={() => navigate(`/templates/${encodeURIComponent(cat)}`)}
             itemWidth={cat.toLowerCase().includes('short') ? 118 : 168}
             aspect={cat.toLowerCase().includes('short') ? '9/16' : '4/3'}
