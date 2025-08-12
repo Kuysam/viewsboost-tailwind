@@ -78,6 +78,11 @@ export default function Studio() {
       { id: 'sky-day', name: 'Sky Day', dark: false, bg: 'linear-gradient(135deg,#e0f2fe 0%,#bae6fd 100%)' },
       { id: 'desert-sand', name: 'Sand', dark: false, bg: 'linear-gradient(135deg,#fef3c7 0%,#fde68a 100%)' },
       { id: 'peach', name: 'Peach', dark: false, bg: 'linear-gradient(135deg,#ffe4e6 0%,#fecdd3 100%)' },
+      // New light themes
+      { id: 'lavender-mist', name: 'Lavender Mist', dark: false, bg: 'linear-gradient(135deg,#f5f3ff 0%,#e9d5ff 100%)' },
+      { id: 'citrus-cream', name: 'Citrus Cream', dark: false, bg: 'linear-gradient(135deg,#fffbeb 0%,#fef3c7 50%,#fde68a 100%)' },
+      { id: 'aqua-breeze', name: 'Aqua Breeze', dark: false, bg: 'linear-gradient(135deg,#ecfeff 0%,#bae6fd 50%,#a7f3d0 100%)' },
+      { id: 'blush-cloud', name: 'Blush Cloud', dark: false, bg: 'linear-gradient(135deg,#fff1f2 0%,#ffe4e6 50%,#fbcfe8 100%)' },
     ],
     []
   );
@@ -95,6 +100,15 @@ export default function Studio() {
   );
   const [selectedFilter, setSelectedFilter] = useState<string>('All');
   const { templates: allTemplates, loading: loadingAll } = useTemplates(null);
+
+  const createPlaceholders = useCallback((count: number, category?: string) => {
+    return Array.from({ length: count }).map((_, i) => ({
+      id: `ph-${category || 'all'}-${i}`,
+      title: category ? `${category} concept ${i + 1}` : `Template idea ${i + 1}`,
+      category: category || ['Birthday','Fashion','Food','Social','Docs','Ads','Web/Content','Events','Commerce'][i % 9],
+      tags: [],
+    }));
+  }, []);
 
   const featured = useMemo(() => {
     const t = (allTemplates || []) as any[];
@@ -195,13 +209,9 @@ export default function Studio() {
             </button>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {(loadingAll ? Array.from({ length: 12 }) : featured).map((t: any, i: number) => (
+            {(loadingAll ? createPlaceholders(12) : (featured.length ? featured : createPlaceholders(12))).map((t: any, i: number) => (
               <div key={t?.id || i} className={`rounded-lg ${cardBg} border ${borderSubtle} overflow-hidden`}>
-                {loadingAll ? (
-                  <div className={`w-full h-full animate-pulse ${theme.dark ? 'bg-zinc-800' : 'bg-zinc-200'}`} style={{ aspectRatio: '4/3' }} />
-                ) : (
-                  <TemplateCard template={t} dark={theme.dark} aspect="4/3" />
-                )}
+                <TemplateCard template={t} dark={theme.dark} aspect="4/3" />
               </div>
             ))}
           </div>
