@@ -10,12 +10,18 @@ function Row({
   onBrowseAll,
   itemWidth = 168,
   aspect = '4/3',
+  titleClassName = 'text-base font-bold',
+  cardBgClass = 'bg-white',
+  borderClass = 'border-black/10',
 }: {
   title: string;
   items: TemplateItem[];
   onBrowseAll: () => void;
   itemWidth?: number;
   aspect?: string;
+  titleClassName?: string;
+  cardBgClass?: string;
+  borderClass?: string;
 }) {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(12);
@@ -29,7 +35,7 @@ function Row({
   return (
     <section className="mb-10">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-base font-medium text-white/90">{title}</h3>
+        <h3 className={titleClassName}>{title}</h3>
         <button onClick={onBrowseAll} className="text-xs text-yellow-300 hover:underline">
           Browse all
         </button>
@@ -42,7 +48,7 @@ function Row({
         {items.slice(0, visible).map((t, i) => (
           <div
             key={t.id || i}
-            className="rounded-lg bg-zinc-900 border border-white/10 shrink-0 snap-start overflow-hidden"
+            className={`rounded-lg ${cardBgClass} border ${borderClass} shrink-0 snap-start overflow-hidden`}
             style={{ width: itemWidth, aspectRatio: aspect as any }}
             title={t.title || t.name}
           >
@@ -83,6 +89,7 @@ export default function Studio() {
   const theme = useMemo(() => THEMES.find(t => t.id === themeId) || THEMES[0], [THEMES, themeId]);
   const textPrimary = theme.dark ? 'text-white' : 'text-zinc-900';
   const textSubtle = theme.dark ? 'text-white/90' : 'text-zinc-800';
+  const titleStrong = theme.dark ? 'text-white' : 'text-zinc-900';
   const borderSubtle = theme.dark ? 'border-white/10' : 'border-black/10';
   const cardBg = theme.dark ? 'bg-zinc-900' : 'bg-white';
   const chipBg = theme.dark ? 'bg-zinc-900/60' : 'bg-white';
@@ -170,7 +177,7 @@ export default function Studio() {
       {/* Scrollable dashboard content */}
       <main className="max-w-7xl mx-auto px-4 py-6 overflow-y-auto">
         <section className="mb-8">
-          <h2 className={`text-lg font-semibold mb-3 ${textSubtle}`}>Quick start</h2>
+          <h2 className={`text-[16px] font-bold mb-3 ${titleStrong}`}>Quick start</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {[{w:1080,h:1080,label:'1080x1080'},{w:1080,h:1920,label:'1080x1920'},{w:1280,h:720,label:'1280x720'},{w:1920,h:1080,label:'1920x1080'}].map((s) => (
               <button key={s.label} className={`aspect-video rounded-lg ${cardBg} border ${borderSubtle} flex items-end justify-center p-2`}>
@@ -183,7 +190,7 @@ export default function Studio() {
         {/* Featured based on filter */}
         <section className="mb-10">
           <div className="flex items-center justify-between mb-2">
-            <h3 className={`text-base font-medium ${textSubtle}`}>Browse templates</h3>
+            <h3 className={`text-[16px] font-bold ${titleStrong}`}>Browse templates</h3>
             <button
               onClick={() => navigate('/templates/Shorts')}
               className="text-xs text-yellow-600 hover:underline"
@@ -216,6 +223,9 @@ export default function Studio() {
           <Row
             key={cat}
             title={cat}
+            titleClassName={`text-[16px] font-bold ${titleStrong}`}
+            cardBgClass={cardBg}
+            borderClass={borderSubtle}
             items={templates || []}
             onBrowseAll={() => navigate(`/templates/${encodeURIComponent(cat)}`)}
             itemWidth={cat.toLowerCase().includes('short') ? 118 : 168}
