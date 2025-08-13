@@ -35,3 +35,12 @@ serviceAccountKey.json
 
 
 serviceAccountKey.json
+
+# Local Python virtual envs
+.venv/
+.venv-*/
+.venv-rembg/
+
+# macOS
+.DS_Store
+
