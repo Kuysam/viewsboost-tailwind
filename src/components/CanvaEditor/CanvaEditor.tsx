@@ -74,6 +74,98 @@ export interface TemplateMeta {
   updatedAt?: string;
 }
 
+// Drag/insert item types for canvas additions
+type InsertTextItem = {
+  type: 'text';
+  text?: string;
+  fontSize?: number;
+  fill?: string;
+  fontFamily?: string;
+  name?: string;
+};
+
+type InsertRectangleItem = {
+  type: 'rectangle';
+  width?: number;
+  height?: number;
+  fill?: string;
+  name?: string;
+};
+
+type InsertCircleItem = {
+  type: 'circle';
+  radius?: number;
+  fill?: string;
+  name?: string;
+};
+
+type InsertItem = InsertTextItem | InsertRectangleItem | InsertCircleItem;
+
+const generateId = (): string => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+// Hoisted helper to add an element to the provided Fabric canvas at a position
+function addElementAtPosition(
+  canvas: fabric.Canvas | null,
+  addLayer: (layer: Layer) => void,
+  item: InsertItem,
+  x: number,
+  y: number
+): void {
+  if (!canvas) return;
+
+  let fabricObject: fabric.Object | null = null;
+  const id = generateId();
+
+  switch (item.type) {
+    case 'text':
+      fabricObject = new fabric.Textbox(item.text || 'Add your text', {
+        left: x,
+        top: y,
+        fontFamily: item.fontFamily || 'Arial',
+        fontSize: item.fontSize || 24,
+        fill: item.fill || '#000000'
+      });
+      break;
+    case 'rectangle':
+      fabricObject = new fabric.Rect({
+        left: x,
+        top: y,
+        width: item.width || 100,
+        height: item.height || 100,
+        fill: item.fill || '#ff6b6b'
+      });
+      break;
+    case 'circle':
+      fabricObject = new fabric.Circle({
+        left: x,
+        top: y,
+        radius: item.radius || 50,
+        fill: item.fill || '#4ecdc4'
+      });
+      break;
+    default:
+      return;
+  }
+
+  if (fabricObject) {
+    // @ts-expect-error: fabric types don't include custom id; we attach for tracking
+    fabricObject.id = id;
+    canvas.add(fabricObject);
+    canvas.setActiveObject(fabricObject);
+
+    addLayer({
+      id,
+      type: item.type === 'rectangle' || item.type === 'circle' ? 'shape' : item.type,
+      name: item.name || item.type,
+      props: {
+        left: x,
+        top: y,
+        ...item
+      }
+    });
+  }
+}
+
 // Store interface
 interface EditorState {
   document: Document;
@@ -403,7 +495,7 @@ const CanvaEditor: React.FC<CanvaEditorProps> = ({ initialTemplate }) => {
           if (draggedItem.type === 'template') {
             insertTemplate(draggedItem.template);
           } else {
-            addElementAtPosition(draggedItem, pointer.x, pointer.y);
+            addElementAtPosition(fabricCanvasRef.current, addLayer, draggedItem, pointer.x, pointer.y);
           }
           setDraggedItem(null);
         }
@@ -416,7 +508,7 @@ const CanvaEditor: React.FC<CanvaEditorProps> = ({ initialTemplate }) => {
         fabricCanvasRef.current = null;
       }
     };
-  }, [setSelectedLayer, draggedItem]);
+  }, [setSelectedLayer, draggedItem, addLayer]);
 
   // Insert a template into the Fabric canvas (define BEFORE any effect that depends on it)
   const insertTemplate = useCallback(async (template: TemplateMeta) => {
@@ -456,20 +548,32 @@ const CanvaEditor: React.FC<CanvaEditorProps> = ({ initialTemplate }) => {
                 width: layer.props.width
               });
             } else if (layer.type === 'text') {
-              addElementAtPosition({
+              addElementAtPosition(
+                fabricCanvasRef.current,
+                addLayer,
+                {
                 type: 'text',
                 text: layer.props.text,
                 fontSize: layer.props.fontSize,
                 fill: layer.props.fill,
                 fontFamily: layer.props.fontFamily
-              }, layer.props.left, layer.props.top);
+                },
+                layer.props.left,
+                layer.props.top
+              );
             } else if (layer.type === 'shape') {
-              addElementAtPosition({
+              addElementAtPosition(
+                fabricCanvasRef.current,
+                addLayer,
+                {
                 type: layer.props.shapeType || 'rectangle',
                 width: layer.props.width,
                 height: layer.props.height,
                 fill: layer.props.fill
-              }, layer.props.left, layer.props.top);
+                },
+                layer.props.left,
+                layer.props.top
+              );
             }
           } catch (error) {
             console.warn('[CanvaEditor] Failed to insert layer:', layer.name, error);
@@ -479,7 +583,7 @@ const CanvaEditor: React.FC<CanvaEditorProps> = ({ initialTemplate }) => {
     } catch (error) {
       console.error('[CanvaEditor] Failed to insert template:', error);
     }
-  }, [addElementAtPosition, templateSource]);
+  }, [addLayer, templateSource]);
 
   // Load initial template when provided
   useEffect(() => {
@@ -507,70 +611,9 @@ const CanvaEditor: React.FC<CanvaEditorProps> = ({ initialTemplate }) => {
     }
   }, [zoom]);
 
-  const generateId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-  // Define before insertTemplate so it is initialized when insertTemplate is created
-  const addElementAtPosition = useCallback((item: any, x: number, y: number) => {
-    if (!fabricCanvasRef.current) return;
-    
-    let fabricObject: fabric.Object | null = null;
-    const id = generateId();
-    
-    switch (item.type) {
-      case 'text':
-        fabricObject = new fabric.Textbox(item.text || 'Add your text', {
-          left: x,
-          top: y,
-          fontFamily: 'Arial',
-          fontSize: item.fontSize || 24,
-          fill: item.fill || '#000000'
-        });
-        break;
-        
-      case 'rectangle':
-        fabricObject = new fabric.Rect({
-          left: x,
-          top: y,
-          width: item.width || 100,
-          height: item.height || 100,
-          fill: item.fill || '#ff6b6b'
-        });
-        break;
-        
-      case 'circle':
-        fabricObject = new fabric.Circle({
-          left: x,
-          top: y,
-          radius: item.radius || 50,
-          fill: item.fill || '#4ecdc4'
-        });
-        break;
-        
-      default:
-        return;
-    }
-    
-    if (fabricObject) {
-      fabricObject.id = id;
-      fabricCanvasRef.current.add(fabricObject);
-      fabricCanvasRef.current.setActiveObject(fabricObject);
-      
-      addLayer({
-        id,
-        type: item.type === 'rectangle' || item.type === 'circle' ? 'shape' : item.type,
-        name: item.name || item.type,
-        props: {
-          left: x,
-          top: y,
-          ...item
-        }
-      });
-    }
-  }, [addLayer]);
-
-  const addText = () => addElementAtPosition({ type: 'text', name: 'Text' }, 100, 100);
-  const addRectangle = () => addElementAtPosition({ type: 'rectangle', name: 'Rectangle' }, 150, 150);
-  const addCircle = () => addElementAtPosition({ type: 'circle', name: 'Circle' }, 200, 200);
+  const addText = () => addElementAtPosition(fabricCanvasRef.current, addLayer, { type: 'text', name: 'Text' }, 100, 100);
+  const addRectangle = () => addElementAtPosition(fabricCanvasRef.current, addLayer, { type: 'rectangle', name: 'Rectangle' }, 150, 150);
+  const addCircle = () => addElementAtPosition(fabricCanvasRef.current, addLayer, { type: 'circle', name: 'Circle' }, 200, 200);
 
   
 
