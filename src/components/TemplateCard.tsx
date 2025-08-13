@@ -6,6 +6,8 @@ type Tmpl = {
   name?: string;
   category?: string;
   tags?: string[];
+  preview?: string;
+  previewPath?: string;
   previewURL?: string;
   thumbnail?: string;
   width?: number;
@@ -116,7 +118,8 @@ function patternStyle(v: Variant): React.CSSProperties | undefined {
 
 export default function TemplateCard({ template, dark, aspect = '4/3', onClick }: { template: Tmpl; dark: boolean; aspect?: string; onClick?: () => void }) {
   const title = template.title || template.name || 'Untitled';
-  const img = template.previewURL || template.thumbnail || '';
+  // Prefer explicit preview, then legacy fields
+  const img = template.preview || template.previewPath || template.previewURL || template.thumbnail || '';
   const variant = useMemo(() => pickVariant(template.category, template.tags), [template.category, template.tags]);
 
   const border = dark ? 'border-white/10' : 'border-black/10';
@@ -130,39 +133,23 @@ export default function TemplateCard({ template, dark, aspect = '4/3', onClick }
       style={{ aspectRatio: aspect as any }}
       title={title}
     >
-      {/* Background layer (image or gradient for placeholder) */}
+      {/* Clean background - image or neutral placeholder */}
       {img ? (
         <img src={img} alt={title} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
       ) : (
-        <div
-          className="absolute inset-0"
-          style={{
-            background: `linear-gradient(135deg, ${variant.accentFrom} 0%, ${variant.accentTo} 100%)`,
-          }}
-        />
+        <div className="absolute inset-0 bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-2xl text-gray-300">🎬</div>
+            <div className="text-xs text-gray-400 mt-1">{title}</div>
+          </div>
+        </div>
       )}
-      {/* Accent gradient overlay */}
-      <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{
-          background: `linear-gradient(135deg, ${variant.accentFrom}44 0%, ${variant.accentTo}66 100%)`,
-          mixBlendMode: 'soft-light',
-        }}
-      />
-      {/* Pattern overlay */}
-      {variant.pattern && variant.pattern !== 'none' && (
-        <div className="absolute inset-0 pointer-events-none" style={patternStyle(variant)} />
-      )}
-      {/* Bottom label bar */}
-      <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
-        <div className={`text-[12px] font-medium truncate ${labelText}`}>{title}</div>
-        <div className={`text-[10px] ${subText}`}>{variant.label}</div>
-      </div>
-      {/* Category chip */}
-      <div className={`absolute top-2 left-2 px-2 py-1 rounded-full text-[10px] font-semibold ${variant.chipBg} ${variant.chipText} shadow-sm`}>{variant.label}</div>
-      {/* Platform icon if any */}
-      {variant.platformIcon && (
-        <img src={variant.platformIcon} alt="platform" className="absolute top-2 right-2 h-4 w-4 opacity-90" />
+      
+      {/* Simple bottom title bar - only when image exists */}
+      {img && (
+        <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/50 to-transparent">
+          <div className="text-[12px] font-medium truncate text-white">{title}</div>
+        </div>
       )}
     </button>
   );

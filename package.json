@@ -15,7 +15,8 @@
     "pull:pexels": "tsx scripts/integrations/pexels.ts",
     "gen:thumbs": "node scripts/generate-thumbnails.cjs",
     "dev:thumbs": "node scripts/generate-thumbnails.cjs && vite --host --force",
-    "build:thumbs": "node scripts/generate-thumbnails.cjs && vite build"
+    "build:thumbs": "node scripts/generate-thumbnails.cjs && vite build",
+    "seed:templates": "tsx scripts/seed-templates.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

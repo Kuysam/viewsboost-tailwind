@@ -1,0 +1,5 @@
+<img
+  src={preview || "/default-template.png"}
+  alt={title}
+  className="absolute top-0 left-0 w-full h-full object-cover opacity-20 group-hover:opacity-40 transition pointer-events-none rounded-2xl"
+/>

@@ -4,7 +4,12 @@ const fs = require('fs');
 const axios = require('axios');
 
 // ---- CONFIG ----
-const UNSPLASH_ACCESS_KEY = '4QSBhU22JAECLL-wphJBiwDGiuEn9H6LdC7AA2_YRZ0'; // <--- Your key is here!
+// Read from environment; do not hardcode keys
+const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY || process.env.VITE_UNSPLASH_ACCESS_KEY || '';
+if (!UNSPLASH_ACCESS_KEY) {
+  console.error('Missing UNSPLASH_ACCESS_KEY. Set UNSPLASH_ACCESS_KEY in your environment or .env');
+  process.exit(1);
+}
 const INPUT_FILE = 'app/templates.json';            // <-- Updated path
 const OUTPUT_FILE = 'app/templates_with_previews.json';  // <-- Updated path
 const QUERY_BY = 'title'; // or 'category'

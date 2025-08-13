@@ -20,6 +20,7 @@ export default function LandingPage() {
   }, [dark]);
 
 
+  // Use public videos (served from /public/videos)
   const videoSources = [
     '/videos/video1.mp4',
     '/videos/video2.mp4',

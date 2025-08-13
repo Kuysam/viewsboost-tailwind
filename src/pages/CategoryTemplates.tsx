@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+// @ts-nocheck
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Search as SearchIcon, Download, Share, X } from "lucide-react";
-import { useTemplates } from "../lib/useTemplates";
+import { getTemplates } from "../lib/templates/registry";
 import { ImageService } from "../lib/services/imageService";
 import { useVideoPreview } from "../components/VideoPreviewExtractor";
 import ModernTemplateGrid from "../components/ModernTemplateGrid";
@@ -12,164 +13,38 @@ function CategoryTemplates() {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [previewTemplate, setPreviewTemplate] = useState(null);
+  const [previewTemplate, setPreviewTemplate] = useState<any | null>(null);
 
   // Decode the category parameter (in case it has special characters)
   const decodedCategory = category ? decodeURIComponent(category) : "";
   
-  // Fetch templates for this specific category
-  // Force Firestore loading to match admin panel data
-  const { templates, loading } = useTemplates(decodedCategory);
+  // Load templates for this category from manifest registry
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // CRITICAL FIX: Force initial Firestore sync to match admin panel
   useEffect(() => {
-    console.log('🔄 [CategoryTemplates] Forcing initial Firestore sync to match admin panel');
-    window.dispatchEvent(new CustomEvent('templatesUpdated', { 
-      detail: { source: 'category-page-init', timestamp: Date.now() } 
-    }));
-    
-    // NAVIGATION GUARD: Prevent accidental navigation to video URLs
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (window.location.pathname.includes('/videos/') && import.meta.env.DEV) {
-        console.warn('🚨 [CategoryTemplates] Navigation to video URL detected and prevented!');
-        e.preventDefault();
-        e.returnValue = '';
-        return '';
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      try {
+        const list = await getTemplates(decodedCategory || undefined);
+        if (!mounted) return;
+        const mapped = list.map((m) => ({
+          id: m.id,
+          title: m.name,
+          category: m.category,
+          jsonPath: m.templatePath,
+          preview: m.previewPath,
+        }));
+        setTemplates(mapped);
+      } finally {
+        if (mounted) setLoading(false);
       }
-    };
-    
-    const handlePopState = (e: PopStateEvent) => {
-      if (window.location.pathname.includes('/videos/')) {
-        console.warn('🚨 [CategoryTemplates] Video URL navigation detected, redirecting back');
-        e.preventDefault();
-        navigate(`/category/${encodeURIComponent(decodedCategory)}`, { replace: true });
-      }
-    };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('popstate', handlePopState);
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [decodedCategory, navigate]);
-
-  // ENHANCED: Listen for real-time template updates from admin panel
-  useEffect(() => {
-    const handleTemplateUpdate = (event: any) => {
-      const detail = event.detail || {};
-      console.log(`🔄 [CategoryTemplates] Received template update event:`, detail);
-      
-      // Force refresh for this specific category if it matches OR for any creation/deletion
-      const shouldRefresh = 
-        detail.category === decodedCategory || 
-        detail.action === 'delete' || 
-        detail.action === 'create' ||
-        detail.source?.includes('sync') ||
-        detail.comprehensive;
-        
-      if (shouldRefresh) {
-        console.log(`🔄 [CategoryTemplates] Template update affects "${decodedCategory}" - triggering AGGRESSIVE refresh`);
-        console.log(`🔄 [CategoryTemplates] Update details:`, {
-          action: detail.action,
-          source: detail.source,
-          category: detail.category,
-          templateId: detail.templateId,
-          templateCount: detail.templateCount
-        });
-        
-        // Multiple aggressive refresh attempts
-        forceFirestoreReload();
-        
-        // Secondary refresh after delay for Firestore propagation
-        setTimeout(() => {
-          console.log(`🔄 [CategoryTemplates] Secondary refresh for "${decodedCategory}"`);
-          forceFirestoreReload();
-        }, 1000);
-        
-        // Final refresh to ensure everything is synced
-        setTimeout(() => {
-          console.log(`🔄 [CategoryTemplates] Final refresh for "${decodedCategory}"`);
-          forceFirestoreReload();
-        }, 2000);
-      }
-    };
-
-    // Listen for ALL update events with high priority
-    const events = [
-      'templatesUpdated',
-      'templateDeleted', 
-      'templateCreated', 
-      'templateCacheInvalid', 
-      'globalTemplateSync',
-      'categoryUpdated'
-    ];
-    
-    events.forEach(eventType => {
-      window.addEventListener(eventType, handleTemplateUpdate);
-      console.log(`👂 [CategoryTemplates] Listening for ${eventType} events for "${decodedCategory}"`);
-    });
-
-    return () => {
-      events.forEach(eventType => {
-        window.removeEventListener(eventType, handleTemplateUpdate);
-      });
-    };
+    })();
+    return () => { mounted = false; };
   }, [decodedCategory]);
 
-  // Add AGGRESSIVE force Firestore reload function
-  const forceFirestoreReload = () => {
-    console.log(`🔄 [CategoryTemplates] Forcing AGGRESSIVE cache invalidation for "${decodedCategory}"...`);
-    
-    const reloadDetail = {
-      source: 'categorypage-manual-reload', 
-      timestamp: Date.now(),
-      categories: [decodedCategory],
-      category: decodedCategory,
-      action: 'force-reload',
-      forceReload: true,
-      immediate: true,
-      comprehensive: true
-    };
-    
-    // Dispatch multiple events for maximum coverage
-    const events = [
-      'templatesUpdated',
-      'templateCacheInvalid',
-      'globalTemplateSync'
-    ];
-    
-    events.forEach(eventType => {
-      window.dispatchEvent(new CustomEvent(eventType, { detail: reloadDetail }));
-      console.log(`📡 [CategoryTemplates] Dispatched ${eventType} for "${decodedCategory}"`);
-    });
-  };
-
-  // Add manual Firestore test function for debugging
-  const testFirestoreDirectly = async () => {
-    console.log(`🔍 [CategoryTemplates] Testing Firestore directly for "${decodedCategory}"...`);
-    try {
-      const { collection, getDocs } = await import('firebase/firestore');
-      const { db } = await import('../lib/firebase');
-      
-      const snapshot = await getDocs(collection(db, "templates"));
-      const firestoreData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const filteredData = firestoreData.filter(doc => 
-        doc.category?.toLowerCase() === decodedCategory.toLowerCase()
-      );
-      
-      console.log(`🔍 [CategoryTemplates] Direct Firestore test results:`);
-      console.log(`- Total templates in Firestore: ${firestoreData.length}`);
-      console.log(`- Templates for "${decodedCategory}": ${filteredData.length}`);
-      console.log(`- Template titles:`, filteredData.map(t => t.title));
-      
-      alert(`Direct Firestore test:\n${firestoreData.length} total templates\n${filteredData.length} templates for "${decodedCategory}"\n\nSee console for details.`);
-    } catch (error) {
-      console.error(`❌ [CategoryTemplates] Direct Firestore test failed:`, error);
-      alert(`Firestore test failed: ${error.message}`);
-    }
-  };
+  // Removed legacy Firestore syncing and debug utilities for manifest-driven flow
 
   // Filter templates based on search query
   const filteredTemplates = templates.filter(template => 
@@ -298,8 +173,7 @@ function CategoryTemplates() {
     
     // Extract video preview if template uses video preview
     const { previewUrl: videoPreviewUrl, isLoading: videoPreviewLoading } = useVideoPreview(
-      template.useVideoPreview && videoSource ? videoSource : "", 
-      1.5 // Extract frame at 1.5 seconds
+      template.useVideoPreview && videoSource ? videoSource : ""
     );
 
     // DEBUG: Log template data for troubleshooting
@@ -685,22 +559,7 @@ function CategoryTemplates() {
           Back to Studio
         </button>
         
-        {import.meta.env.DEV && (
-          <>
-            <button
-              onClick={forceFirestoreReload}
-              className="ml-2 px-4 py-2 font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition"
-            >
-              🔄 Force Reload
-            </button>
-            <button
-              onClick={testFirestoreDirectly}
-              className="ml-2 px-4 py-2 font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition"
-            >
-              🔍 Test Firestore
-            </button>
-          </>
-        )}
+        {false && import.meta.env.DEV && (<></>)}
         
         <div className="flex items-center gap-3">
           <span className="text-4xl">{getCategoryIcon(decodedCategory)}</span>

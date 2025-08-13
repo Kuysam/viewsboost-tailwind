@@ -43,6 +43,8 @@ const CategoryTemplates = React.lazy(() => import('./pages/CategoryTemplates'));
 
 // Lazy load admin panel (rarely accessed, very large)
 const AdminPanel = React.lazy(() => import('./pages/AdminPanel'));
+const EditorV2 = React.lazy(() => import('./editor/EditorV2'));
+const CanvaEditorDemo = React.lazy(() => import('./pages/CanvaEditorDemo'));
 
 // Loading component for suspense fallback
 const PageLoader = () => (
@@ -185,12 +187,23 @@ export default function App() {
 
           {/* Dev Studio routes removed in fresh start */}
 
+          {/* Canva Editor Demo */}
+          <Route
+            path="/canva-editor"
+            element={
+              <ProtectedRoute>
+                <CanvaEditorDemo />
+              </ProtectedRoute>
+            }
+          />
+
           {/* ---- Dev-only routes ---- */}
           {import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEV_ROUTES === 'true' && (
             <>
               <Route path="/dev/seed-templates" element={<SeedTemplates />} />
               <Route path="/dev/storage-smoke" element={<StorageSmoke />} />
               <Route path="/canvas-editor" element={<Navigate to="/studio" replace />} />
+              <Route path="/editor-v2" element={<EditorV2 />} />
             </>
           )}
 
