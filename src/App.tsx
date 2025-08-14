@@ -19,7 +19,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import VideoProcessingTest from './pages/VideoProcessingTest';
 
 
-import SeedTemplates from './dev/SeedTemplates';
 
 import StorageSmoke from './dev/StorageSmoke';
 
@@ -36,14 +35,13 @@ const LiveStream = React.lazy(() => import('./pages/live/[id]'));
 // Lazy load studio components (large and specialized)
 const StudioLive = React.lazy(() => import('./pages/live/StudioLive'));
 const StudioRoom = React.lazy(() => import('./pages/live/Room'));
-const TemplateImporter = React.lazy(() => import('./pages/TemplateImporter'));
-const CategoryTemplates = React.lazy(() => import('./pages/CategoryTemplates'));
+// Template components removed - ready for new implementation
 // TemplateEditor replaced by Studio - all editor routes now use Studio
 // const TemplateEditor = React.lazy(() => import('./pages/TemplateEditor'));
 
 // Lazy load admin panel (rarely accessed, very large)
 const AdminPanel = React.lazy(() => import('./pages/AdminPanel'));
-const EditorV2 = React.lazy(() => import('./editor/EditorV2'));
+// EditorV2 test page removed
 const CanvaEditorDemo = React.lazy(() => import('./pages/CanvaEditorDemo'));
 
 // Loading component for suspense fallback
@@ -93,8 +91,7 @@ export default function App() {
             <Route path="/simple-editor" element={<Navigate to="/studio" replace />} />
           
           {/* Template Importer - Lazy loaded (large component) */}
-          <Route path="/import-templates" element={<TemplateImporter />} />
-          <Route path="/template-importer" element={<TemplateImporter />} />
+          {/* Template routes removed - ready for new implementation */}
           
           {/* Video Watch Page - Lazy loaded */}
           <Route
@@ -200,33 +197,14 @@ export default function App() {
           {/* ---- Dev-only routes ---- */}
           {import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEV_ROUTES === 'true' && (
             <>
-              <Route path="/dev/seed-templates" element={<SeedTemplates />} />
               <Route path="/dev/storage-smoke" element={<StorageSmoke />} />
               <Route path="/canvas-editor" element={<Navigate to="/studio" replace />} />
-              <Route path="/editor-v2" element={<EditorV2 />} />
+              {/* /editor-v2 route removed */}
             </>
           )}
 
-          {/* Category Templates Route - Lazy loaded */}
-          <Route
-            path="/category/:category"
-            element={
-              <ProtectedRoute>
-                <CategoryTemplates />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Templates routes (alias) */}
-          <Route
-            path="/templates/:category"
-            element={
-              <ProtectedRoute>
-                <CategoryTemplates />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/templates" element={<Navigate to="/category/Shorts" replace />} />
+          {/* Category template routes removed - ready for new implementation */}
+          <Route path="/templates" element={<Navigate to="/studio" replace />} />
 
           {/* Studio Editor Routes - All editor routes now redirect to studio */}
           <Route path="/editor/shorts" element={<Navigate to="/studio" replace />} />
@@ -241,8 +219,7 @@ export default function App() {
 
           {/* 404 fallback */}
           <Route path="*" element={<NotFound />} />
-          <Route path="/dev/seed-templates" element={<SeedTemplates />} />
-  <Route path="/dev/storage-smoke" element={<StorageSmoke />} />
+          <Route path="/dev/storage-smoke" element={<StorageSmoke />} />
 </Routes>
       </Suspense>
     </BaseLayout>
