@@ -219,7 +219,7 @@ export default function App() {
 
           {/* Templates routes (alias) */}
           <Route
-            path="/templates/:category"
+            path="/templates/:category.json"
             element={
               <ProtectedRoute>
                 <CategoryTemplates />

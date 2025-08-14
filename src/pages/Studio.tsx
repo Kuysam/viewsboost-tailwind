@@ -375,7 +375,7 @@ export default function Studio() {
           <div className="flex items-center justify-between mb-2">
             <h3 className={`text-[16px] font-bold ${titleStrong}`}>Browse templates</h3>
             <button
-              onClick={() => navigate('/templates/Shorts')}
+              onClick={() => navigate('/templates/Shorts.json')}
               className="text-xs text-yellow-600 hover:underline"
             >
               View all
@@ -398,7 +398,7 @@ export default function Studio() {
             cardBgClass={cardBg}
             borderClass={borderSubtle}
             items={((templates || []) as any).slice(0, 12)}
-            onBrowseAll={() => navigate(`/templates/${encodeURIComponent(cat)}`)}
+            onBrowseAll={() => navigate(`/templates/${encodeURIComponent(cat)}.json`)}
             itemWidth={cat.toLowerCase().includes('short') ? 118 : 168}
             aspect={cat.toLowerCase().includes('short') ? '9/16' : '4/3'}
                     />

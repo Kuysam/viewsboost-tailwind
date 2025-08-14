@@ -55,7 +55,7 @@ function docIdFromTemplate(input: string): string {
 }
 
 // Optional: read-only listing from Firebase Storage mirroring /templates/library
-export async function listFirebaseStorageTemplates(baseFolder = 'templates/library'): Promise<TemplateMeta[]> {
+export async function listFirebaseStorageTemplates(baseFolder = '/templates/library.json'): Promise<TemplateMeta[]> {
   try {
     const { getStorage, ref, listAll, getDownloadURL } = await import('firebase/storage');
     const storage = getStorage();
