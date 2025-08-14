@@ -16,7 +16,9 @@
     "gen:thumbs": "node scripts/generate-thumbnails.cjs",
     "dev:thumbs": "node scripts/generate-thumbnails.cjs && vite --host --force",
     "build:thumbs": "node scripts/generate-thumbnails.cjs && vite build",
-    "seed:templates": "tsx scripts/seed-templates.ts"
+    "seed:templates": "tsx scripts/seed-templates.ts",
+    "build:gen-templates": "tsx scripts/build-generated-templates.ts",
+    "test:e2e": "playwright test tests/e2e/studio.smoke.spec.ts --reporter=line"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -45,6 +47,7 @@
     "ag-psd": "^28.2.1",
     "archiver": "^7.0.1",
     "axios": "^1.10.0",
+    "bash-mcp": "^1.1.0",
     "buffer": "^6.0.3",
     "canvas": "^3.1.2",
     "canvas2svg": "^1.0.16",
@@ -107,6 +110,7 @@
     "pixi.js": "^8.11.0",
     "playwright": "^1.53.2",
     "plotly.js": "^2.35.3",
+    "puppeteer-mcp-server": "^0.7.2",
     "qrcode": "^1.5.4",
     "react": "^18.2.0",
     "react-animated-text-builders": "^1.1.2",
@@ -161,6 +165,7 @@
     "underscore": "^1.13.7"
   },
   "devDependencies": {
+    "@agent-infra/mcp-server-commands": "^1.2.18",
     "@eslint/js": "^8.56.0",
     "@playwright/test": "^1.54.2",
     "@types/dompurify": "^3.0.5",

@@ -132,25 +132,26 @@ export default function TemplateCard({ template, dark, aspect = '4/3', onClick }
       className={`group relative w-full h-full rounded-lg overflow-hidden border ${border} focus:outline-none focus:ring-2 focus:ring-yellow-400`}
       style={{ aspectRatio: aspect as any }}
       title={title}
+      data-testid="template-card"
     >
-      {/* Clean background - image or neutral placeholder */}
-      {img ? (
-        <img src={img} alt={title} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-      ) : (
-        <div className="absolute inset-0 bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-2xl text-gray-300">🎬</div>
-            <div className="text-xs text-gray-400 mt-1">{title}</div>
-          </div>
-        </div>
-      )}
+      {/* Full-bleed thumbnail with fallback */}
+      <div className="relative w-full h-full overflow-hidden">
+        <img
+          src={template.thumbnail || "/default-template.png"}
+          alt={template.name || template.title || "Template"}
+          loading="lazy"
+          crossOrigin="anonymous"
+          className="absolute inset-0 h-full w-full object-cover object-center"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "/default-template.png";
+          }}
+        />
+      </div>
       
-      {/* Simple bottom title bar - only when image exists */}
-      {img && (
-        <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/50 to-transparent">
-          <div className="text-[12px] font-medium truncate text-white">{title}</div>
-        </div>
-      )}
+      {/* Simple bottom title bar */}
+      <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/50 to-transparent">
+        <div className="text-[12px] font-medium truncate text-white">{title}</div>
+      </div>
     </button>
   );
 }

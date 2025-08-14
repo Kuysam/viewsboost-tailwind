@@ -4,6 +4,8 @@ import { getTemplates, getCategories, TemplateManifestItem } from '../lib/templa
 import TemplateCard from '../components/TemplateCard';
 import CanvaEditor from '../components/CanvaEditor/CanvaEditor';
 import { viewsBoostTemplateService } from '../components/CanvaEditor/services/ViewsBoostTemplateService';
+import { fabric } from 'fabric';
+import { addMediaLayer } from '../utils/canvasMedia';
 
 type TemplateItem = any;
 
@@ -35,14 +37,14 @@ function Row({
     if (nearEnd) setVisible((v) => Math.min(v + 12, items.length));
   }, [items.length]);
 
-    return (
+  return (
     <section className="mb-10">
       <div className="flex items-center justify-between mb-2">
         <h3 className={titleClassName}>{title}</h3>
         <button onClick={onBrowseAll} className="text-xs text-yellow-300 hover:underline">
           Browse all
           </button>
-        </div>
+      </div>
       <div
         ref={scrollerRef}
         onScroll={onScroll}
@@ -54,9 +56,10 @@ function Row({
             className={`rounded-lg bg-white border ${borderClass} shrink-0 snap-start overflow-hidden`}
             style={{ width: itemWidth }}
             title={t.title || t.name}
+            data-testid="template-card"
           >
             <TemplateCard template={t as any} dark={titleClassName.includes('text-white')} aspect={aspect} />
-        </div>
+    </div>
               ))}
             </div>
     </section>
@@ -97,40 +100,55 @@ export default function Studio() {
   const cardBg = theme.dark ? 'bg-zinc-900' : 'bg-white';
   const chipBg = theme.dark ? 'bg-zinc-900/60' : 'bg-white';
   const filterTabs = useMemo(
-    () => ['All', 'Social Media Posts', 'Thumbnails', 'Shorts', 'Business', 'Marketing/Promotional', 'Documents'],
+    () => ['All', 'Birthday', 'Business', 'Fashion', 'Food', 'Sale', 'Social', 'Instagram', 'Facebook', 'YouTube', 'TikTok', 'Twitter/X', 'LinkedIn', 'Shorts/Video', 'Thumbnails', 'Web/Content', 'Ads', 'Print', 'Docs', 'Branding', 'Events/Personal', 'Commerce/Promo'],
     []
   );
   const [selectedFilter, setSelectedFilter] = useState<string>('All');
   const [allTemplates, setAllTemplates] = useState<any[]>([]);
   const [loadingAll, setLoadingAll] = useState<boolean>(true);
 
+  // --- merge base + generated manifests (minimal) ---
   useEffect(() => {
     let mounted = true;
+
+    const get = async (url: string) => {
+      try {
+        const r = await fetch(url, { cache: "no-store" });
+        if (!r.ok) return [];
+        const j = await r.json();
+        return Array.isArray(j) ? j : [];
+      } catch {
+        return [];
+      }
+    };
+
     (async () => {
       try {
-        console.log('[Studio] Loading enhanced templates...');
-        const enhancedTemplates = await viewsBoostTemplateService.getTemplates();
+        setLoadingAll(true);
+        const [base, gen] = await Promise.all([
+          get("/assets/templates/manifest.json"),
+          get("/assets/templates/manifest.generated.json"),
+        ]);
+
         if (!mounted) return;
-        
-        // Convert to the format expected by the UI
-        const formattedTemplates = enhancedTemplates.map(template => ({
-          id: template.id,
-          title: template.title,
-          name: template.title,
-          category: template.category,
-          preview: template.thumbnail,
-          previewURL: template.thumbnail,
-          thumbnail: template.thumbnail,
-          jsonPath: template.thumbnail,
-          width: template.dimensions?.width || 1152,
-          height: template.dimensions?.height || 768,
-          templateData: template // Store full template data
-        }));
-        
-        console.log(`[Studio] Loaded ${formattedTemplates.length} enhanced templates`);
-        setAllTemplates(formattedTemplates);
+
+        const norm = (item: any) => ({
+          id: item.id ?? item._id ?? crypto.randomUUID(),
+          name: item.name ?? item.title ?? "Untitled",
+          title: item.name ?? item.title ?? "Untitled",
+          width: Number(item.width ?? item.w ?? 1080),
+          height: Number(item.height ?? item.h ?? 1350),
+          jsonPath: item.jsonPath ?? item.jsonpath ?? item.path ?? "",
+          thumbnail: item.thumbnail ?? item.thumb ?? "/default-template.png",
+          category: item.category ?? "General",
+          ...item,
+        });
+
+        const merged = [...base.map(norm), ...gen.map(norm)];
+        console.table({ base: base.length, generated: gen.length, total: merged.length });
+        setAllTemplates(merged);
       } catch (error) {
-        console.error('[Studio] Failed to load enhanced templates:', error);
+        console.error('[Studio] Failed to load manifests:', error);
         // Fallback to demo templates so user sees something
         setAllTemplates(demoTemplates);
         console.log('[Studio] Using demo templates as fallback');
@@ -138,6 +156,7 @@ export default function Studio() {
         if (mounted) setLoadingAll(false);
       }
     })();
+
     return () => { mounted = false; };
   }, []);
 
@@ -145,7 +164,7 @@ export default function Studio() {
     return Array.from({ length: count }).map((_, i) => ({
       id: `ph-${category || 'all'}-${i}`,
       title: category ? `${category} concept ${i + 1}` : `Template idea ${i + 1}`,
-      category: category || ['Birthday','Fashion','Food','Social','Docs','Ads','Web/Content','Events','Commerce'][i % 9],
+      category: category || ['Birthday','Business','Fashion','Food','Sale','Social','Instagram','Facebook','YouTube'][i % 9],
       tags: [],
     }));
   }, []);
@@ -225,7 +244,57 @@ export default function Studio() {
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<any | null>(null);
-  const openTemplate = (tpl: any) => { setSelectedTemplate(tpl); setEditorOpen(true); };
+  async function openTemplate(t: any) {
+    try {
+      const r = await fetch(t.jsonPath, { cache: 'no-store' });
+      if (!r.ok) throw new Error(`Fetch failed ${t.jsonPath}: ${r.status}`);
+      const data = await r.json();
+      const layers = Array.isArray(data?.layers) ? data.layers : [];
+
+      // get your existing canvas instance (however you currently do it)
+      const el = document.getElementById('main-canvas') as HTMLCanvasElement | null;
+      if (!el) {
+        console.warn('Canvas element not found, falling back to original behavior');
+        setSelectedTemplate(t); 
+        setEditorOpen(true);
+        return;
+      }
+      const canvas = (el as any)._fabric || new fabric.Canvas(el);
+      (el as any)._fabric = canvas;
+
+      canvas.clear();
+      for (const layer of layers) {
+        if (layer.type === 'image' || layer.type === 'video') {
+          await addMediaLayer(canvas, { crossOrigin:'anonymous', ...layer });
+        } else if (layer.type === 'rect') {
+          const rect = new fabric.Rect({
+            left: layer.x || 0,
+            top: layer.y || 0,
+            width: layer.w || 100,
+            height: layer.h || 100,
+            fill: layer.fill || '#000000',
+            opacity: layer.opacity || 1,
+          });
+          canvas.add(rect);
+        } else if (layer.type === 'text') {
+          const text = new fabric.Text(layer.text || 'Text', {
+            left: layer.x || 0,
+            top: layer.y || 0,
+            fontSize: layer.fontSize || 16,
+            fill: layer.fill || '#000000',
+            fontWeight: layer.fontWeight || 'normal',
+          });
+          canvas.add(text);
+        }
+      }
+      canvas.requestRenderAll();
+    } catch (e) {
+      console.error('Open template failed:', e);
+      // Fallback to original behavior
+      setSelectedTemplate(t); 
+      setEditorOpen(true);
+    }
+  }
   const topCategories = useMemo(() => {
     // Extract unique categories from all templates
     const categories = [...new Set(allTemplates.map(t => t.category).filter(Boolean))];
@@ -246,20 +315,20 @@ export default function Studio() {
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
           <div className="text-2xl font-extrabold text-yellow-500">ViewsBoost Studio</div>
           <div className="ml-auto flex items-center gap-2">
-          <input
+            <input
               className={`${chipBg} ${borderSubtle} border rounded-lg px-3 py-2 text-sm w-72 ${theme.dark ? 'text-white' : 'text-zinc-900'}`}
               placeholder="Search…"
             />
             <button className="px-3 py-2 rounded-lg bg-gradient-to-r from-yellow-400 to-red-500 text-black font-semibold">
               Create
-          </button>
+        </button>
       </div>
-          </div>
+    </div>
         {/* Theme picker */}
         <div className="max-w-7xl mx-auto px-4 pb-3 overflow-x-auto">
           <div className="flex gap-2 items-center">
             {THEMES.map((t) => (
-              <button 
+          <button
                 key={t.id}
                 onClick={() => setThemeId(t.id)}
                 className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm whitespace-nowrap border ${borderSubtle} ${themeId===t.id ? 'ring-2 ring-yellow-400' : ''}`}
@@ -267,25 +336,25 @@ export default function Studio() {
                 title={t.name}
               >
                 <span className={`px-2 py-0.5 rounded ${t.dark ? 'bg-white/20 text-white' : 'bg-black/10 text-zinc-900'}`}>{t.name}</span>
-              </button>
-            ))}
-            
+          </button>
+        ))}
+
           </div>
-        </div>
+      </div>
         {/* Top filter bar */}
         <div className="max-w-7xl mx-auto px-4 pb-3 overflow-x-auto">
           <div className="flex gap-2">
             {filterTabs.map((tab) => (
-                <button
+              <button 
                 key={tab}
                 onClick={() => setSelectedFilter(tab)}
                 className={`px-3 py-1 rounded-full text-sm whitespace-nowrap border ${selectedFilter===tab ? 'bg-yellow-400 text-black border-yellow-500' : `${chipBg} ${borderSubtle} ${theme.dark ? 'text-white/80 hover:bg-zinc-800' : 'text-zinc-800 hover:bg-zinc-100'}`}`}
                 >
                 {tab}
-                </button>
-              ))}
-            </div>
-          </div>
+              </button>
+        ))}
+      </div>
+    </div>
       </header>
 
       {/* Scrollable dashboard content */}
@@ -296,29 +365,29 @@ export default function Studio() {
             {[{w:1080,h:1080,label:'1080x1080'},{w:1080,h:1920,label:'1080x1920'},{w:1280,h:720,label:'1280x720'},{w:1920,h:1080,label:'1920x1080'}].map((s) => (
               <button key={s.label} className={`aspect-video rounded-lg ${cardBg} border ${borderSubtle} flex items-end justify-center p-2`}>
                 <span className={`text-xs ${theme.dark ? 'text-white/70' : 'text-zinc-700'}`}>{s.label}</span>
-            </button>
-          ))}
-        </div>
+                </button>
+              ))}
+            </div>
         </section>
 
         {/* Featured based on filter */}
         <section className="mb-10">
           <div className="flex items-center justify-between mb-2">
             <h3 className={`text-[16px] font-bold ${titleStrong}`}>Browse templates</h3>
-          <button
+            <button
               onClick={() => navigate('/templates/Shorts')}
               className="text-xs text-yellow-600 hover:underline"
             >
               View all
-          </button>
-      </div>
+            </button>
+        </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
             {(loadingAll ? createPlaceholders(12) : (featured.length ? featured : demoTemplates)).map((t: any, i: number) => (
-              <div key={t?.id || i} className={`rounded-lg bg-white border ${borderSubtle} overflow-hidden w-full h-48`}>
+              <div key={t?.id || i} className={`rounded-lg bg-white border ${borderSubtle} overflow-hidden w-full h-48`} data-testid="template-card">
                 <TemplateCard template={t} dark={theme.dark} aspect="4/3" onClick={() => openTemplate(t)} />
-    </div>
-          ))}
-        </div>
+      </div>
+        ))}
+      </div>
         </section>
 
         {catsData.map(({ cat, templates }) => (
@@ -339,14 +408,14 @@ export default function Studio() {
       {editorOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur">
           <div className="h-screen w-full relative">
-            <button
+                    <button
               onClick={() => setEditorOpen(false)}
               className="absolute top-4 right-4 z-50 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
             >
               Close
-            </button>
+          </button>
             <CanvaEditor initialTemplate={selectedTemplate} />
-          </div>
+        </div>
         </div>
       )}
     </div>

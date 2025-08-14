@@ -695,7 +695,7 @@ const CanvaEditor: React.FC<CanvaEditorProps> = ({ initialTemplate }) => {
       </div>
       
       {/* Top Bar */}
-      <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between">
+      <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between" data-testid="toolbar">
         <div className="flex items-center space-x-4">
           <button 
             onClick={undo}
@@ -745,14 +745,14 @@ const CanvaEditor: React.FC<CanvaEditorProps> = ({ initialTemplate }) => {
         </div>
         
         <div className="flex items-center space-x-2">
-          <button className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
+            <button className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50" data-testid="btn-preview">
             Preview
           </button>
-          <button className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
+            <button className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50" data-testid="btn-save">
             Save
           </button>
           <div className="relative">
-            <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+              <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" data-testid="btn-export">
               Export ▼
             </button>
             <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded shadow-lg z-10 hidden group-hover:block">
@@ -780,9 +780,9 @@ const CanvaEditor: React.FC<CanvaEditorProps> = ({ initialTemplate }) => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex">
+        <div className="flex-1 flex">
         {/* Left Sidebar */}
-        <div className="w-64 bg-white border-r border-gray-200">
+          <div className="w-64 bg-white border-r border-gray-200" data-testid="layers-panel">
           <div className="border-b border-gray-200">
             <div className="flex">
               {['text', 'shapes', 'images', 'upload', 'templates'].map((tab) => (
@@ -1019,6 +1019,8 @@ const CanvaEditor: React.FC<CanvaEditorProps> = ({ initialTemplate }) => {
               <canvas
                 ref={canvasRef}
                 className="block"
+                id="main-canvas"
+                data-testid="editor-canvas"
               />
             </div>
           </div>
