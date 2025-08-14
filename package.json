@@ -18,7 +18,8 @@
     "build:thumbs": "node scripts/generate-thumbnails.cjs && vite build",
     "seed:templates": "tsx scripts/seed-templates.ts",
     "build:gen-templates": "tsx scripts/build-generated-templates.ts",
-    "test:e2e": "playwright test tests/e2e/studio.smoke.spec.ts --reporter=line"
+    "test:e2e": "playwright test",
+    "dev:e2e": "vite --host --force"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -183,6 +184,7 @@
     "globals": "^13.24.0",
     "postcss": "^8.4.35",
     "puppeteer": "^24.14.0",
+    "start-server-and-test": "^2.0.13",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.19.2",
     "typescript": "~5.3.3",
