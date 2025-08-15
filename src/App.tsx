@@ -2,6 +2,7 @@
 import Studio from './pages/Studio';
 
 import React, { useEffect, Suspense } from 'react';
+import Editor2 from "./new-editor/pages/Editor2";
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import BaseLayout from './components/BaseLayout';
 import LandingPage from './components/LandingPage';
@@ -42,7 +43,7 @@ const StudioRoom = React.lazy(() => import('./pages/live/Room'));
 // Lazy load admin panel (rarely accessed, very large)
 const AdminPanel = React.lazy(() => import('./pages/AdminPanel'));
 // EditorV2 test page removed
-const CanvaEditorDemo = React.lazy(() => import('./pages/CanvaEditorDemo'));
+
 
 // Loading component for suspense fallback
 const PageLoader = () => (
@@ -184,16 +185,7 @@ export default function App() {
 
           {/* Dev Studio routes removed in fresh start */}
 
-          {/* Canva Editor Demo */}
-          <Route
-            path="/canva-editor"
-            element={
-              <ProtectedRoute>
-                <CanvaEditorDemo />
-              </ProtectedRoute>
-            }
-          />
-
+          
           {/* ---- Dev-only routes ---- */}
           {import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEV_ROUTES === 'true' && (
             <>
@@ -220,6 +212,7 @@ export default function App() {
           {/* 404 fallback */}
           <Route path="*" element={<NotFound />} />
           <Route path="/dev/storage-smoke" element={<StorageSmoke />} />
+
 </Routes>
       </Suspense>
     </BaseLayout>

@@ -1,74 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getTemplates, getCategories, TemplateManifestItem } from '../lib/templates/registry';
-import TemplateCard from '../components/TemplateCard';
-import CanvaEditor from '../components/CanvaEditor/CanvaEditor';
-import { viewsBoostTemplateService } from '../components/CanvaEditor/services/ViewsBoostTemplateService';
-import { fabric } from 'fabric';
-import { addMediaLayer } from '../utils/canvasMedia';
+import Editor2 from '../new-editor/pages/Editor2';
 
-type TemplateItem = any;
-
-function Row({
-  title,
-  items,
-  onBrowseAll,
-  itemWidth = 220,
-  aspect = '4/3',
-  titleClassName = 'text-base font-bold',
-  cardBgClass = 'bg-white',
-  borderClass = 'border-black/10',
-}: {
-  title: string;
-  items: TemplateItem[];
-  onBrowseAll: () => void;
-  itemWidth?: number;
-  aspect?: string;
-  titleClassName?: string;
-  cardBgClass?: string;
-  borderClass?: string;
-}) {
-  const scrollerRef = useRef<HTMLDivElement | null>(null);
-  const [visible, setVisible] = useState(12);
-  const onScroll = useCallback(() => {
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
-    const nearEnd = scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 200;
-    if (nearEnd) setVisible((v) => Math.min(v + 12, items.length));
-  }, [items.length]);
-
-  return (
-    <section className="mb-10">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className={titleClassName}>{title}</h3>
-        <button onClick={onBrowseAll} className="text-xs text-yellow-300 hover:underline">
-          Browse all
-          </button>
-      </div>
-      <div
-        ref={scrollerRef}
-        onScroll={onScroll}
-        className="flex gap-3 overflow-x-auto snap-x scrollbar-thin scrollbar-thumb-zinc-700/60 scrollbar-track-transparent"
-      >
-        {items.slice(0, visible).map((t, i) => (
-          <div
-            key={t.id || i}
-            className={`rounded-lg bg-white border ${borderClass} shrink-0 snap-start overflow-hidden`}
-            style={{ width: itemWidth }}
-            title={t.title || t.name}
-            data-testid="template-card"
-          >
-            <TemplateCard template={t as any} dark={titleClassName.includes('text-white')} aspect={aspect} />
-    </div>
-              ))}
-            </div>
-    </section>
-  );
-}
+type PresetKey = '1080x1080' | '1080x1920' | '1280x720' | '1920x1080';
 
 export default function Studio() {
   const navigate = useNavigate();
-  // --- Theme system ---
+
+  // ===== Theme system (kept from your previous Studio, 1:1 with tiny polish) =====
   const THEMES = useMemo(
     () => [
       { id: 'polished-dark', name: 'Polished Dark', dark: true, bg: 'linear-gradient(135deg,#17171c 0%,#232438 100%)' },
@@ -82,236 +21,47 @@ export default function Studio() {
       { id: 'mint-fresh', name: 'Mint Fresh', dark: false, bg: 'linear-gradient(135deg,#ecfeff 0%,#d1fae5 100%)' },
       { id: 'sky-day', name: 'Sky Day', dark: false, bg: 'linear-gradient(135deg,#e0f2fe 0%,#bae6fd 100%)' },
       { id: 'desert-sand', name: 'Sand', dark: false, bg: 'linear-gradient(135deg,#fef3c7 0%,#fde68a 100%)' },
-      { id: 'peach', name: 'Peach', dark: false, bg: 'linear-gradient(135deg,#ffe4e6 0%,#fecdd3 100%)' },
-      // New light themes
-      { id: 'lavender-mist', name: 'Lavender Mist', dark: false, bg: 'linear-gradient(135deg,#f5f3ff 0%,#e9d5ff 100%)' },
-      { id: 'citrus-cream', name: 'Citrus Cream', dark: false, bg: 'linear-gradient(135deg,#fffbeb 0%,#fef3c7 50%,#fde68a 100%)' },
-      { id: 'aqua-breeze', name: 'Aqua Breeze', dark: false, bg: 'linear-gradient(135deg,#ecfeff 0%,#bae6fd 50%,#a7f3d0 100%)' },
-      { id: 'blush-cloud', name: 'Blush Cloud', dark: false, bg: 'linear-gradient(135deg,#fff1f2 0%,#ffe4e6 50%,#fbcfe8 100%)' },
     ],
     []
   );
+
   const [themeId, setThemeId] = useState<string>('soft-light');
   const theme = useMemo(() => THEMES.find(t => t.id === themeId) || THEMES[0], [THEMES, themeId]);
   const textPrimary = theme.dark ? 'text-white' : 'text-zinc-900';
-  const textSubtle = theme.dark ? 'text-white/90' : 'text-zinc-800';
-  const titleStrong = theme.dark ? 'text-white' : 'text-zinc-900';
   const borderSubtle = theme.dark ? 'border-white/10' : 'border-black/10';
-  const cardBg = theme.dark ? 'bg-zinc-900' : 'bg-white';
   const chipBg = theme.dark ? 'bg-zinc-900/60' : 'bg-white';
-  const filterTabs = useMemo(
-    () => ['All', 'Birthday', 'Business', 'Fashion', 'Food', 'Sale', 'Social', 'Instagram', 'Facebook', 'YouTube', 'TikTok', 'Twitter/X', 'LinkedIn', 'Shorts/Video', 'Thumbnails', 'Web/Content', 'Ads', 'Print', 'Docs', 'Branding', 'Events/Personal', 'Commerce/Promo'],
-    []
-  );
-  const [selectedFilter, setSelectedFilter] = useState<string>('All');
-  const [allTemplates, setAllTemplates] = useState<any[]>([]);
-  const [loadingAll, setLoadingAll] = useState<boolean>(true);
 
-  // --- merge base + generated manifests (minimal) ---
-  useEffect(() => {
-    let mounted = true;
-
-    const get = async (url: string) => {
-      try {
-        const r = await fetch(url, { cache: "no-store" });
-        if (!r.ok) return [];
-        const j = await r.json();
-        return Array.isArray(j) ? j : [];
-      } catch {
-        return [];
-      }
-    };
-
-    (async () => {
-      try {
-        setLoadingAll(true);
-        const [base, gen] = await Promise.all([
-          get("/assets/templates/manifest.json"),
-          get("/assets/templates/manifest.generated.json"),
-        ]);
-
-        if (!mounted) return;
-
-        const norm = (item: any) => ({
-          id: item.id ?? item._id ?? crypto.randomUUID(),
-          name: item.name ?? item.title ?? "Untitled",
-          title: item.name ?? item.title ?? "Untitled",
-          width: Number(item.width ?? item.w ?? 1080),
-          height: Number(item.height ?? item.h ?? 1350),
-          jsonPath: item.jsonPath ?? item.jsonpath ?? item.path ?? "",
-          thumbnail: item.thumbnail ?? item.thumb ?? "/default-template.png",
-          category: item.category ?? "General",
-          ...item,
-        });
-
-        const merged = [...base.map(norm), ...gen.map(norm)];
-        console.table({ base: base.length, generated: gen.length, total: merged.length });
-        setAllTemplates(merged);
-      } catch (error) {
-        console.error('[Studio] Failed to load manifests:', error);
-        // Fallback to demo templates so user sees something
-        setAllTemplates(demoTemplates);
-        console.log('[Studio] Using demo templates as fallback');
-      } finally {
-        if (mounted) setLoadingAll(false);
-      }
-    })();
-
-    return () => { mounted = false; };
-  }, []);
-
-  const createPlaceholders = useCallback((count: number, category?: string) => {
-    return Array.from({ length: count }).map((_, i) => ({
-      id: `ph-${category || 'all'}-${i}`,
-      title: category ? `${category} concept ${i + 1}` : `Template idea ${i + 1}`,
-      category: category || ['Birthday','Business','Fashion','Food','Sale','Social','Instagram','Facebook','YouTube'][i % 9],
-      tags: [],
-    }));
-  }, []);
-
-  // Use enhanced templates instead of manifest
-  const allFromManifest = useMemo(() => {
-    return allTemplates;
-  }, [allTemplates]);
-
-  const featured = useMemo(() => {
-    const t = allFromManifest;
-    const sel = selectedFilter.toLowerCase();
-    if (sel === 'all') return t.slice(0, 24);
-    return t
-      .filter((x) => {
-        const hay = `${x.category || ''} ${x.title || ''}`.toLowerCase();
-        return hay.includes(sel) || hay.replace(/-/g, ' ').includes(sel);
-      })
-      .slice(0, 24);
-  }, [allFromManifest, selectedFilter]);
-
-  // Demo editable templates (image, video, and docs)
-  const demoTemplates = useMemo(() => [
-    {
-      id: 'demo-image-1080',
-      title: 'Modern Poster A',
-      category: 'Poster',
-      width: 1080,
-      height: 1350,
-      studioEditor: {
-        canvasType: 'image',
-        dimensions: { width: 1080, height: 1350 },
-        layers: [
-          { type: 'background', asset: '/images/viewer.jpg', editable: false },
-          { type: 'shape', element: 'rectangle', position: { x: 60, y: 1040 }, style: { width: 320, height: 140, fill: '#f59e0b', opacity: 0.9 } },
-          { type: 'text', content: 'Modern Poster A', position: { x: 80, y: 1065 }, style: { fontSize: 42, color: '#111827', fontFamily: 'Arial', textAlign: 'left' } },
-        ],
-      },
-      tags: ['image', 'poster']
-    },
-    {
-      id: 'demo-video-shorts',
-      title: 'Shorts Template',
-      category: 'Shorts',
-      width: 1080,
-      height: 1920,
-      studioEditor: {
-        canvasType: 'video',
-        dimensions: { width: 1080, height: 1920 },
-        layers: [
-          { type: 'video', url: '/assets/videos/video20.mp4', w: 1080, autoplay: true, loop: true, muted: true },
-          { type: 'text', content: 'Your Headline', position: { x: 80, y: 1600 }, style: { fontSize: 72, color: '#ffffff', fontFamily: 'Arial', textAlign: 'left' } },
-        ],
-      },
-      tags: ['video', 'shorts']
-    },
-    {
-      id: 'demo-doc',
-      title: 'Simple Resume',
-      category: 'Docs',
-      width: 1240,
-      height: 1754,
-      studioEditor: {
-        canvasType: 'document',
-        dimensions: { width: 1240, height: 1754 },
-        layers: [
-          { type: 'shape', element: 'rectangle', position: { x: 0, y: 0 }, style: { width: 1240, height: 1754, fill: '#ffffff' } },
-          { type: 'shape', element: 'rectangle', position: { x: 0, y: 0 }, style: { width: 340, height: 1754, fill: '#0ea5e9', opacity: 0.12 } },
-          { type: 'text', content: 'Jane Doe', position: { x: 420, y: 120 }, style: { fontSize: 64, color: '#0f172a', fontFamily: 'Arial', textAlign: 'left' } },
-          { type: 'text', content: 'Product Designer', position: { x: 420, y: 200 }, style: { fontSize: 28, color: '#334155', fontFamily: 'Arial', textAlign: 'left' } },
-          { type: 'text', content: 'Experience\n• Company A — Senior Designer\n• Company B — Designer', position: { x: 420, y: 320 }, style: { fontSize: 20, color: '#1f2937', fontFamily: 'Arial', textAlign: 'left' } },
-        ],
-      },
-      tags: ['document', 'resume']
-    },
-  ], []);
-
+  // ===== Editor overlay state =====
   const [editorOpen, setEditorOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<any | null>(null);
-  async function openTemplate(t: any) {
-    try {
-      const r = await fetch(t.jsonPath, { cache: 'no-store' });
-      if (!r.ok) throw new Error(`Fetch failed ${t.jsonPath}: ${r.status}`);
-      const data = await r.json();
-      const layers = Array.isArray(data?.layers) ? data.layers : [];
+  const [initialPreset, setInitialPreset] = useState<PresetKey>('1080x1080');
 
-      // get your existing canvas instance (however you currently do it)
-      const el = document.getElementById('main-canvas') as HTMLCanvasElement | null;
-      if (!el) {
-        console.warn('Canvas element not found, falling back to original behavior');
-        setSelectedTemplate(t); 
-        setEditorOpen(true);
-        return;
-      }
-      const canvas = (el as any)._fabric || new fabric.Canvas(el);
-      (el as any)._fabric = canvas;
+  // Small UX: Esc closes editor; scroll lock body while open
+  useEffect(() => {
+    if (!editorOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setEditorOpen(false);
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [editorOpen]);
 
-      canvas.clear();
-      for (const layer of layers) {
-        if (layer.type === 'image' || layer.type === 'video') {
-          await addMediaLayer(canvas, { crossOrigin:'anonymous', ...layer });
-        } else if (layer.type === 'rect') {
-          const rect = new fabric.Rect({
-            left: layer.x || 0,
-            top: layer.y || 0,
-            width: layer.w || 100,
-            height: layer.h || 100,
-            fill: layer.fill || '#000000',
-            opacity: layer.opacity || 1,
-          });
-          canvas.add(rect);
-        } else if (layer.type === 'text') {
-          const text = new fabric.Text(layer.text || 'Text', {
-            left: layer.x || 0,
-            top: layer.y || 0,
-            fontSize: layer.fontSize || 16,
-            fill: layer.fill || '#000000',
-            fontWeight: layer.fontWeight || 'normal',
-          });
-          canvas.add(text);
-        }
-      }
-      canvas.requestRenderAll();
-    } catch (e) {
-      console.error('Open template failed:', e);
-      // Fallback to original behavior
-      setSelectedTemplate(t); 
-      setEditorOpen(true);
-    }
+  // ===== Actions =====
+  function startBlankProject(preset: PresetKey) {
+    setInitialPreset(preset);
+    setEditorOpen(true);
   }
-  const topCategories = useMemo(() => {
-    // Extract unique categories from all templates
-    const categories = [...new Set(allTemplates.map(t => t.category).filter(Boolean))];
-    return categories.slice(0, 8); // Limit to first 8 categories
-  }, [allTemplates]);
-
-  // Build per-category lists from manifest
-  const catsData = useMemo(() => {
-    return topCategories.map((cat) => ({
-      cat,
-      templates: allFromManifest.filter((t) => (t.category || '').toLowerCase() === cat.toLowerCase()),
-    }));
-  }, [topCategories, allFromManifest]);
 
   return (
     <div className={`min-h-screen w-full ${textPrimary}`} style={{ background: theme.bg }}>
-      <header className={`sticky top-0 z-20 backdrop-blur border-b ${borderSubtle}`} style={{ background: theme.dark ? 'rgba(15,17,21,0.65)' : 'rgba(255,255,255,0.65)' }}>
+      {/* ===== Header ===== */}
+      <header
+        className={`sticky top-0 z-20 backdrop-blur border-b ${borderSubtle}`}
+        style={{ background: theme.dark ? 'rgba(15,17,21,0.65)' : 'rgba(255,255,255,0.65)' }}
+      >
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
           <div className="text-2xl font-extrabold text-yellow-500">ViewsBoost Studio</div>
           <div className="ml-auto flex items-center gap-2">
@@ -319,107 +69,85 @@ export default function Studio() {
               className={`${chipBg} ${borderSubtle} border rounded-lg px-3 py-2 text-sm w-72 ${theme.dark ? 'text-white' : 'text-zinc-900'}`}
               placeholder="Search…"
             />
-            <button className="px-3 py-2 rounded-lg bg-gradient-to-r from-yellow-400 to-red-500 text-black font-semibold">
+            <button
+              onClick={() => startBlankProject(initialPreset)}
+              className="px-3 py-2 rounded-lg bg-gradient-to-r from-yellow-400 to-red-500 text-black font-semibold"
+            >
               Create
-        </button>
-      </div>
-    </div>
+            </button>
+          </div>
+        </div>
+
         {/* Theme picker */}
         <div className="max-w-7xl mx-auto px-4 pb-3 overflow-x-auto">
           <div className="flex gap-2 items-center">
             {THEMES.map((t) => (
-          <button
+              <button
                 key={t.id}
                 onClick={() => setThemeId(t.id)}
-                className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm whitespace-nowrap border ${borderSubtle} ${themeId===t.id ? 'ring-2 ring-yellow-400' : ''}`}
+                className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm whitespace-nowrap border ${borderSubtle} ${themeId === t.id ? 'ring-2 ring-yellow-400' : ''}`}
                 style={{ background: t.bg }}
                 title={t.name}
               >
                 <span className={`px-2 py-0.5 rounded ${t.dark ? 'bg-white/20 text-white' : 'bg-black/10 text-zinc-900'}`}>{t.name}</span>
-          </button>
-        ))}
-
-          </div>
-      </div>
-        {/* Top filter bar */}
-        <div className="max-w-7xl mx-auto px-4 pb-3 overflow-x-auto">
-          <div className="flex gap-2">
-            {filterTabs.map((tab) => (
-              <button 
-                key={tab}
-                onClick={() => setSelectedFilter(tab)}
-                className={`px-3 py-1 rounded-full text-sm whitespace-nowrap border ${selectedFilter===tab ? 'bg-yellow-400 text-black border-yellow-500' : `${chipBg} ${borderSubtle} ${theme.dark ? 'text-white/80 hover:bg-zinc-800' : 'text-zinc-800 hover:bg-zinc-100'}`}`}
-                >
-                {tab}
               </button>
-        ))}
-      </div>
-    </div>
+            ))}
+          </div>
+        </div>
       </header>
 
-      {/* Scrollable dashboard content */}
+      {/* ===== Main content ===== */}
       <main className="w-full px-4 py-6 overflow-y-auto">
-        <section className="mb-8">
-          <h2 className={`text-[16px] font-bold mb-3 ${titleStrong}`}>Quick start</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {[{w:1080,h:1080,label:'1080x1080'},{w:1080,h:1920,label:'1080x1920'},{w:1280,h:720,label:'1280x720'},{w:1920,h:1080,label:'1920x1080'}].map((s) => (
-              <button key={s.label} className={`aspect-video rounded-lg ${cardBg} border ${borderSubtle} flex items-end justify-center p-2`}>
-                <span className={`text-xs ${theme.dark ? 'text-white/70' : 'text-zinc-700'}`}>{s.label}</span>
+        <section className="mb-8 text-center">
+          <h2 className={`text-3xl font-bold mb-4 ${textPrimary}`}>Welcome to ViewsBoost Studio</h2>
+          <p className={`${theme.dark ? 'text-white/80' : 'text-zinc-700'} text-lg mb-6`}>
+            Create stunning graphics, videos, and documents with our powerful canvas editor
+          </p>
+
+          {/* Quick start sizes — now wired to Editor2 presets */}
+          <div className="mb-8">
+            <h3 className={`text-xl font-semibold mb-3 ${textPrimary}`}>Quick start</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
+              {[
+                { key: '1080x1080' as PresetKey, label: 'Square Post\n1080×1080' },
+                { key: '1080x1920' as PresetKey, label: 'Story/Shorts\n1080×1920' },
+                { key: '1280x720' as PresetKey, label: 'YouTube Thumbnail\n1280×720' },
+                { key: '1920x1080' as PresetKey, label: 'Banner\n1920×1080' },
+              ].map((s) => (
+                <button
+                  key={s.key}
+                  onClick={() => startBlankProject(s.key)}
+                  className={`aspect-video rounded-lg ${theme.dark ? 'bg-zinc-800 hover:bg-zinc-700' : 'bg-white hover:bg-zinc-50'} border ${borderSubtle} flex items-center justify-center p-4 transition-colors`}
+                >
+                  <span className={`text-sm text-center whitespace-pre ${theme.dark ? 'text-white/70' : 'text-zinc-700'}`}>{s.label}</span>
                 </button>
               ))}
             </div>
-        </section>
+          </div>
 
-        {/* Featured based on filter */}
-        <section className="mb-10">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className={`text-[16px] font-bold ${titleStrong}`}>Browse templates</h3>
+          <div className="text-center">
+            <p className={`text-sm ${theme.dark ? 'text-white/60' : 'text-zinc-600'} mb-4`}>
+              Templates and other features coming soon...
+            </p>
             <button
-              onClick={() => navigate('/templates/Shorts')}
-              className="text-xs text-yellow-600 hover:underline"
+              onClick={() => startBlankProject(initialPreset)}
+              className="px-6 py-3 rounded-lg bg-gradient-to-r from-yellow-400 to-red-500 text-black font-semibold text-lg hover:shadow-lg transition-all"
             >
-              View all
+              Start Creating
             </button>
-        </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
-            {(loadingAll ? createPlaceholders(12) : (featured.length ? featured : demoTemplates)).map((t: any, i: number) => (
-              <div key={t?.id || i} className={`rounded-lg bg-white border ${borderSubtle} overflow-hidden w-full h-48`} data-testid="template-card">
-                <TemplateCard template={t} dark={theme.dark} aspect="4/3" onClick={() => openTemplate(t)} />
-      </div>
-        ))}
-      </div>
+          </div>
         </section>
+      </main>
 
-        {catsData.map(({ cat, templates }) => (
-          <Row
-            key={cat}
-            title={cat}
-            titleClassName={`text-[16px] font-bold ${titleStrong}`}
-            cardBgClass={cardBg}
-            borderClass={borderSubtle}
-            items={((templates || []) as any).slice(0, 12)}
-            onBrowseAll={() => navigate(`/templates/${encodeURIComponent(cat)}`)}
-            itemWidth={cat.toLowerCase().includes('short') ? 118 : 168}
-            aspect={cat.toLowerCase().includes('short') ? '9/16' : '4/3'}
-                    />
-                  ))}
-        </main>
-
+      {/* ===== Editor overlay ===== */}
       {editorOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur">
           <div className="h-screen w-full relative">
-                    <button
-              onClick={() => setEditorOpen(false)}
-              className="absolute top-4 right-4 z-50 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
-            >
-              Close
-          </button>
-            <CanvaEditor initialTemplate={selectedTemplate} />
-        </div>
+            {/* Pass the selected preset into Editor2 */}
+            <Editor2 initialPreset={initialPreset} />
+          </div>
         </div>
       )}
     </div>
   );
 }
-
-
